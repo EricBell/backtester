@@ -330,15 +330,30 @@ class Backtester:
         # Real implementation: iterate signals and simulate fills.
         return
 
-    def compute_metrics(self):
-        # Compute summary statistics from self.trades
-        # Return a dict that will be saved as summary.json
-        return {
-            "total_trades": len(self.trades),
-            "wins": sum(1 for t in self.trades if t.net_pnl > 0),
-            "losses": sum(1 for t in self.trades if t.net_pnl <= 0),
-        }
 
+    def compute_metrics(self):
+        """
+        Compute summary statistics from self.trades.
+        Returns a dict with at least:
+          total_trades, gross_pnl, net_pnl, wins, losses, win_rate
+        """
+        total = len(self.trades)
+        gross = sum(t.gross_pnl for t in self.trades) if total else 0.0
+        net = sum(t.net_pnl for t in self.trades) if total else 0.0
+        wins = sum(1 for t in self.trades if t.net_pnl > 0)
+        losses = sum(1 for t in self.trades if t.net_pnl <= 0)
+        win_rate = (wins / total) if total else 0.0
+
+        # preserve existing fields where applicable; this dict can be expanded later
+        return {
+            "total_trades": total,
+            "gross_pnl": gross,
+            "net_pnl": net,
+            "wins": wins,
+            "losses": losses,
+            "win_rate": round(win_rate, 4),
+        }
+    
     def save_results(self):
         # Save trades.csv (empty or stub), summary.json, and a placeholder equity_curve.png (not generated in skeleton)
         trades_out = self.outdir / "trades.csv"

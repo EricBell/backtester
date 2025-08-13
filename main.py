@@ -141,8 +141,20 @@ def main(
     # Initialize backtester (skeleton)
     bt = Backtester(strategy=strategy, bars_df=df_resampled, config=merged, outdir=outdir_path)
     bt.run()
+
+    # Compute metrics and print compact run summary (trades & net P&L)
+    metrics = bt.compute_metrics()
+    total_trades = metrics.get("total_trades", 0)
+    net_pnl = metrics.get("net_pnl", 0.0)
+    gross_pnl = metrics.get("gross_pnl", 0.0)
+    if total_trades == 0:
+        typer.echo(f"Trades taken: 0 — no trades generated. No outputs to inspect.")
+    else:
+        typer.echo(f"Trades taken: {total_trades} | Net P&L: ${net_pnl:,.2f} | Gross P&L: ${gross_pnl:,.2f}")
+
+    # Save results as before
     bt.save_results()
-    typer.echo("Backtest completed (skeleton). See outputs for files.")
+    typer.echo("Backtest completed. See outputs for files.")
 
 
 if __name__ == "__main__":
