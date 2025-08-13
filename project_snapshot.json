@@ -1,0 +1,176 @@
+{
+  "project": "MES_intraday_backtester",
+  "snapshot_version": "v0.2",
+  "snapshot_time_et": "2025-08-13T15:18:00-04:00",
+  "user": {
+    "name": "Eric Bell",
+    "username": "EricTheRed",
+    "experience_level": "Expert (5+ years)",
+    "trading_style": "Scalper",
+    "primary_instruments": ["MES (Micro E-mini S&P 500)"],
+    "account_size": 2000,
+    "membership": "Lifetime — AI Pro + L3",
+    "short_term_goals": {
+      "daily_profit_target": 100,
+      "daily_risk_cap": 200,
+      "session_window": "08:00-12:00 ET",
+      "preferred_chart": "3-minute (1-min for entries, 10-min for bias)"
+    }
+  },
+  "requirements": {
+    "planning_only": true,
+    "implement_after_go": true,
+    "no_execution_by_AI": true,
+    "data_format_expected": ["CSV columns: date, time, open, high, low, close, volume (ET)"],
+    "timezone": "America/New_York (ET) - treat input as ET",
+    "session_filter_default": "08:00-12:00 ET",
+    "no_continuous_contract_handling": true,
+    "commission_default": 1.75,
+    "slippage": "parameterizable (points)",
+    "dollars_per_point": "migrated to per-contract mapping in config",
+    "resample_default": 3,
+    "resample_align": "preserve ET session boundaries"
+  },
+  "strategies": {
+    "orb": {
+      "name": "Opening Range Breakout",
+      "open_range_minutes": 15,
+      "entry": "Close above OR high (or below OR low) on 3-min with EMA(9)/VWAP/volume confirmation",
+      "stop": "below breakout candle low or structure ticks or ATR-based if specified",
+      "targets": ["scale 50% at 1R", "trail remainder to 2R or EMA-based trail"],
+      "time_rule": "cancel if not triggered within 60 minutes of OR",
+      "notes": "volume confirmation recommended; avoid news"
+    },
+    "pullback": {
+      "name": "Pullback-to-EMA",
+      "bias": "10-min bias or EMA(20)",
+      "entry": "3-bar pullback to EMA(9 or 20) with reversal bar",
+      "stop": "below pullback low / ATR-based",
+      "targets": ["1.5-3R, move stop to breakeven after 1R"],
+      "notes": "fewer signals, lower false-break risk"
+    },
+    "vwap_fade": {
+      "name": "VWAP Fade / Mean Reversion",
+      "entry": "Price extended from VWAP on 3-min with low-volume pullback",
+      "stop": "small stop beyond recent swing",
+      "targets": ["quick scalps 0.5-1R; repeatable"],
+      "notes": "controlled stops, lower R:R"
+    }
+  },
+  "backtester_design": {
+    "repo_layout": {
+      "main.py": "Typer CLI entrypoint",
+      "engines": [
+        "engines/orb_engine.py",
+        "engines/pullback_engine.py",
+        "engines/vwap_engine.py"
+      ],
+      "core": [
+        "core/backtester.py",
+        "core/indicators.py",
+        "core/utils.py"
+      ],
+      "examples/config.yaml": "default parameter sets",
+      "outputs/": "trade logs, daily_pnl.csv, summary.json, equity_curve.png",
+      "tests/": "unit tests for indicators and smoke backtests",
+      "README.md": "usage & assumptions"
+    },
+    "interfaces": {
+      "StrategyBase": "generate_signals(df) -> DataFrame (timestamp, side, entry_price, stop, target, meta)",
+      "Backtester": "init(strategy, bars_df, config); run(); compute_metrics(); save_results(outdir)"
+    },
+    "cli_args": {
+      "data": "CSV path",
+      "engine": "[orb,pullback,vwap]",
+      "start,end": "YYYY-MM-DD (derived from CSV if omitted)",
+      "tz": "America/New_York default (overridable via config)",
+      "session-start,session-end": "08:00/12:00 defaults (configurable)",
+      "resample": 3,
+      "commission": 1.75,
+      "slippage": "points",
+      "contracts": 1,
+      "per-trade-risk": null,
+      "max-daily-loss": 200,
+      "max-trades": 6,
+      "outdir": "./outputs",
+      "contract": null,
+      "no-detect": false,
+      "contract-regex": null,
+      "meta-file": null
+    },
+    "fill_model": {
+      "default": "next_bar_open/immediate configurable",
+      "slippage_application": "fill_price = theoretical +/- slippage_points",
+      "commission_convention": "round-trip applied (documented)"
+    },
+    "position_sizing": {
+      "modes": ["fixed_contracts", "risk_based"],
+      "risk_formula": "contracts = floor(per_trade_risk / (stop_points * dollars_per_point))",
+      "fallback": "if contracts < 1 => simulate 1 contract and log that risk exceeds per_trade_risk"
+    },
+    "outputs_schema": {
+      "trades_csv": [
+        "trade_id","entry_timestamp","exit_timestamp","side","entry_price","exit_price",
+        "contracts","gross_pnl","commission","slippage_cost","net_pnl","r_multiple","setup","params_snapshot","contract"
+      ],
+      "daily_pnl_csv": ["date","day_gross_pnl","day_commission","day_slippage","day_net_pnl","cumulative_net_pnl","drawdown","trades_count"],
+      "summary_json": ["total_trades","wins","losses","win_rate","avg_win_$","avg_loss_$","expectancy_$","avg_R","max_drawdown_$","sharpe_like","sample_size_warning","params_used"]
+    }
+  },
+  "contracts_config": {
+    "default_contract": "MES",
+    "contract_detection_regex": "(?P<symbol>(?:MES|MNQ|ES|NQ|RTY))",
+    "require_contract": true,
+    "contracts": {
+      "MES": {
+        "label": "Micro E-mini S&P 500",
+        "dollars_per_point": 5.0,
+        "tick_size": 0.25,
+        "notes": "Micro e-mini S&P"
+      },
+      "MNQ": {
+        "label": "Micro E-mini Nasdaq-100",
+        "dollars_per_point": 2.0,
+        "tick_size": 0.25,
+        "notes": "Micro e-mini NASDAQ"
+      },
+      "ES": {
+        "label": "E-mini S&P 500",
+        "dollars_per_point": 50.0,
+        "tick_size": 0.25,
+        "notes": "E-mini S&P"
+      }
+    },
+    "detection_priority": ["cli (--contract)", "filename parsing (contract_detection_regex)", "config.default_contract"],
+    "detection_behavior": {
+      "on_no_match": "fail-fast with helpful error listing supported symbols",
+      "on_multiple_matches": "require CLI override (error)",
+      "meta_file_precedence": "if --meta-file provided, meta-file > filename parsing but < CLI"
+    }
+  },
+  "tests_and_validation": {
+    "indicator_tests": "deterministic unit tests for ema/atr/vwap/rsi",
+    "backtester_smoke": "synthetic tiny CSV expected P&L",
+    "sample_size_warning_threshold": 100,
+    "contract_validation": {
+      "validate_symbol_exists_in_config": true,
+      "optional_strict_price_scale_check": false,
+      "strict_flag_name": "--strict-validation"
+    }
+  },
+  "open_items": [
+    "historical data files: user will upload CSV(s)",
+    "explicit default slippage semantics value (left parameterized in config)",
+    "decide whether to enable optional strict price-scale validation (config.strict_validation)",
+    "any additional contracts to add to config.contracts"
+  ],
+  "process_notes": {
+    "planning_only": "No code execution until user says 'proceed'. AI will not place orders or run backtests without explicit 'go'.",
+    "how_to_restore": "Paste the JSON into the chat or upload the saved project_snapshot.json and say 'restore snapshot' to rehydrate context."
+  },
+  "last_actions": [
+    "Added per-contract dollars_per_point mapping and detection rules to snapshot v0.2.",
+    "Updated outputs/trades.csv schema to include contract column and persist resolved contract metadata to outputs/config_used.yaml.",
+    "Waiting for user to provide remaining turns and CSVs; will not generate code until 'proceed'."
+  ]
+}
