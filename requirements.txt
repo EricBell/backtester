@@ -1,0 +1,8 @@
+pandas
+numpy
+PyYAML
+typer
+matplotlib
+pytest
+pytz
+python-dateutil
