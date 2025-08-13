@@ -56,3 +56,8 @@ Next steps
 3. Use tests/ and the README as guidance.
 
 This is a safety-first skeleton — it will not execute trades. When you want me to implement further behavior (e.g., fills, partial exits, slippage modeling), say what you want next and I will produce the code accordingly.
+
+Tests
+1. Running config validator
+   1. $  python -m pytest -q tests/test_config_validation.py
+   

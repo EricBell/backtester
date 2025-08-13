@@ -192,3 +192,92 @@ def validate_config_basic(cfg: dict):
         if "tick_size" not in v or v["tick_size"] <= 0:
             errors.append(f"contracts.{k}.tick_size must be > 0")
     return errors        
+
+def validate_config(cfg: dict) -> list:
+    """
+    Validate config dict. Returns list of error messages (empty if valid).
+    Call this early in main() after merging CLI/config/defaults.
+    """
+    errors = []
+
+    # Basic globals
+    if not cfg.get("timezone"):
+        errors.append("timezone is missing or empty")
+    if cfg.get("commission_roundtrip", -1) < 0:
+        errors.append("commission_roundtrip must be >= 0")
+    if cfg.get("slippage_points", -1) < 0:
+        errors.append("slippage_points must be >= 0")
+    if cfg.get("resample_minutes", 0) < 1:
+        errors.append("resample_minutes must be >= 1")
+    if cfg.get("min_trades_for_stats_warning", 0) < 1:
+        errors.append("min_trades_for_stats_warning must be >= 1")
+
+    # require_contract logic
+    if cfg.get("require_contract", False) and not cfg.get("contracts"):
+        errors.append("require_contract is true but 'contracts' mapping is missing or empty")
+
+    # Contracts mapping checks
+    contracts = cfg.get("contracts", {})
+    if not isinstance(contracts, dict):
+        errors.append("'contracts' must be a mapping")
+    else:
+        for sym, meta in contracts.items():
+            if not isinstance(meta, dict):
+                errors.append(f"contracts.{sym} must be a mapping")
+                continue
+            if meta.get("dollars_per_point", 0) <= 0:
+                errors.append(f"contracts.{sym}.dollars_per_point must be > 0")
+            if meta.get("tick_size", 0) <= 0:
+                errors.append(f"contracts.{sym}.tick_size must be > 0")
+
+    # ORB engine checks
+    orb = cfg.get("orb", {})
+    if orb:
+        or_minutes = orb.get("open_range_minutes", 0)
+        if not isinstance(or_minutes, int) or or_minutes < 1:
+            errors.append("orb.open_range_minutes must be integer >= 1")
+        tprs = orb.get("take_profit_r", [])
+        if not isinstance(tprs, list) or any((not isinstance(x, (int, float)) or x <= 0) for x in tprs):
+            errors.append("orb.take_profit_r must be a list of positive numbers")
+        if orb.get("stop_policy") not in {"structure", "atr", "fixed"}:
+            errors.append("orb.stop_policy must be one of: structure, atr, fixed")
+
+    # Pullback checks
+    pb = cfg.get("pullback", {})
+    if pb:
+        ef = pb.get("ema_fast", None)
+        es = pb.get("ema_slow", None)
+        if not (isinstance(ef, int) and isinstance(es, int) and ef > 0 and es > 0):
+            errors.append("pullback.ema_fast and ema_slow must be positive integers")
+        if ef >= es:
+            # not fatal but warnable
+            errors.append("pullback.ema_fast should normally be smaller than ema_slow")
+
+    # VWAP checks
+    vwap = cfg.get("vwap", {})
+    if vwap:
+        if vwap.get("threshold_points", -1) < 0:
+            errors.append("vwap.threshold_points must be >= 0")
+
+    return errors
+
+def round_to_tick(price: float, tick: float, direction: str = "nearest") -> float:
+    """
+    Round price to contract tick size.
+    direction: "nearest" | "up" | "down"
+    """
+    if tick <= 0:
+        return price
+    ticks = price / tick
+    import math
+    if direction == "nearest":
+        rounded = round(ticks) * tick
+    elif direction == "up":
+        rounded = math.ceil(ticks) * tick
+    elif direction == "down":
+        rounded = math.floor(ticks) * tick
+    else:
+        rounded = round(ticks) * tick
+    # avoid -0.0 float formatting
+    return float(rounded)
+
