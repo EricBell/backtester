@@ -75,16 +75,16 @@ def load_csv_parse_datetime(path: Path, tz: Optional[str]) -> pd.DataFrame:
     df = pd.read_csv(path)
     # Expect date,time columns; try to be flexible
     if "datetime" in df.columns:
-        dt = pd.to_datetime(df["datetime"], infer_datetime_format=True)
+        dt = pd.to_datetime(df["datetime"])
     else:
         # Some CSVs use date+time columns
         if "date" in df.columns and "time" in df.columns:
-            dt = pd.to_datetime(df["date"].astype(str) + " " + df["time"].astype(str), infer_datetime_format=True)
+            dt = pd.to_datetime(df["date"].astype(str) + " " + df["time"].astype(str))
         else:
             # Fallback: try to parse the index or first column
             try:
                 first_col = df.columns[0]
-                dt = pd.to_datetime(df[first_col], infer_datetime_format=True)
+                dt = pd.to_datetime(df[first_col])
             except Exception as e:
                 raise ValueError("Could not find date/time columns in CSV. Expected 'date' and 'time' columns or 'datetime' column.") from e
 
@@ -147,14 +147,24 @@ def session_filter(df, session_start: str = "08:00", session_end: str = "12:00")
 
 def resample_to_n_minutes(df, n: int):
     # Simple resample on the datetime index to n-minute bars. Label/closed set to right by default.
-    ohlc = {
-        "open": "first",
-        "high": "max",
-        "low": "min",
-        "close": "last",
-        "volume": "sum",
-    }
-    res = df.resample(f"{n}T", label="right", closed="right").agg(ohlc)
+    # Handle both lowercase and capitalized column names
+    available_cols = df.columns.tolist()
+    
+    # Find the correct column names (case-insensitive)
+    ohlc = {}
+    for target, agg_func in [("open", "first"), ("high", "max"), ("low", "min"), ("close", "last"), ("volume", "sum")]:
+        # Look for exact match first, then case-insensitive
+        col_name = None
+        if target in available_cols:
+            col_name = target
+        elif target.capitalize() in available_cols:
+            col_name = target.capitalize()
+        elif target.upper() in available_cols:
+            col_name = target.upper()
+        
+        if col_name:
+            ohlc[col_name] = agg_func
+    res = df.resample(f"{n}min", label="right", closed="right").agg(ohlc)
     res = res.dropna(how="any")
     return res
 

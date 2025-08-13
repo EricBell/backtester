@@ -1,6 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[codz]
+*.py[cod]
 *$py.class
 
 # C extensions
@@ -209,4 +209,4 @@ __marimo__/
 
 config.yaml
 data/
-output/
+outputs/
