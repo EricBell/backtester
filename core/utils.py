@@ -172,3 +172,23 @@ def resample_to_n_minutes(df, n: int):
 def save_json(obj: dict, path: Path):
     with open(path, "w") as f:
         json.dump(obj, f, indent=2, default=str)
+
+def validate_config_basic(cfg: dict):
+    errors = []
+    # Globals
+    if "timezone" not in cfg or not cfg["timezone"]:
+        errors.append("timezone is missing")
+    if cfg.get("commission_roundtrip", -1) < 0:
+        errors.append("commission_roundtrip must be >= 0")
+    if cfg.get("resample_minutes", 0) < 1:
+        errors.append("resample_minutes must be >= 1")
+    if cfg.get("require_contract", False) and not cfg.get("contracts"):
+        errors.append("require_contract is true but no contracts are defined")
+    # Contract entries
+    ctrs = cfg.get("contracts", {})
+    for k, v in ctrs.items():
+        if "dollars_per_point" not in v or v["dollars_per_point"] <= 0:
+            errors.append(f"contracts.{k}.dollars_per_point must be > 0")
+        if "tick_size" not in v or v["tick_size"] <= 0:
+            errors.append(f"contracts.{k}.tick_size must be > 0")
+    return errors        
