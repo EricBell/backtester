@@ -1,7 +1,7 @@
 {
   "project": "MES_intraday_backtester",
-  "snapshot_version": "v0.2",
-  "snapshot_time_et": "2025-08-13T15:18:00-04:00",
+  "snapshot_version": "v0.3",
+  "snapshot_time_et": "2025-08-13T15:28:00-04:00",
   "user": {
     "name": "Eric Bell",
     "username": "EricTheRed",
@@ -94,7 +94,7 @@
       "max-trades": 6,
       "outdir": "./outputs",
       "contract": null,
-      "no-detect": false,
+      "no-detect": true,
       "contract-regex": null,
       "meta-file": null
     },
@@ -119,8 +119,9 @@
   },
   "contracts_config": {
     "default_contract": "MES",
-    "contract_detection_regex": "(?P<symbol>(?:MES|MNQ|ES|NQ|RTY))",
+    "contract_detection_regex": null,
     "require_contract": true,
+    "meta_file_support_enabled": false,
     "contracts": {
       "MES": {
         "label": "Micro E-mini S&P 500",
@@ -141,11 +142,11 @@
         "notes": "E-mini S&P"
       }
     },
-    "detection_priority": ["cli (--contract)", "filename parsing (contract_detection_regex)", "config.default_contract"],
+    "detection_priority": ["cli (--contract)"],
     "detection_behavior": {
       "on_no_match": "fail-fast with helpful error listing supported symbols",
       "on_multiple_matches": "require CLI override (error)",
-      "meta_file_precedence": "if --meta-file provided, meta-file > filename parsing but < CLI"
+      "meta_file_precedence": "disabled by default"
     }
   },
   "tests_and_validation": {
@@ -161,7 +162,6 @@
   "open_items": [
     "historical data files: user will upload CSV(s)",
     "explicit default slippage semantics value (left parameterized in config)",
-    "decide whether to enable optional strict price-scale validation (config.strict_validation)",
     "any additional contracts to add to config.contracts"
   ],
   "process_notes": {
@@ -169,8 +169,9 @@
     "how_to_restore": "Paste the JSON into the chat or upload the saved project_snapshot.json and say 'restore snapshot' to rehydrate context."
   },
   "last_actions": [
-    "Added per-contract dollars_per_point mapping and detection rules to snapshot v0.2.",
-    "Updated outputs/trades.csv schema to include contract column and persist resolved contract metadata to outputs/config_used.yaml.",
-    "Waiting for user to provide remaining turns and CSVs; will not generate code until 'proceed'."
+    "Enforced strict CLI-only contract requirement and disabled filename detection.",
+    "Disabled meta-file support by default (can be enabled later if desired).",
+    "Added tick_size to per-contract metadata and kept dollars_per_point per contract.",
+    "Updated snapshot to v0.3 reflecting these choices."
   ]
 }
