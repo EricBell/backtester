@@ -37,9 +37,22 @@ class Backtester:
         - For each signal attempt to execute (entry at next bar open) and monitor for stop/targets
         - Record filled trades into self.trades
         """
-        signals = self.strategy.generate_signals(self.bars)
+        # Give the strategy a lowercase-column copy of the bars so it can find expected columns.
+        # This preserves self.bars (Title-case) for the execution simulator below while
+        # providing the strategy the lowercase columns it expects (open/high/low/close/volume).
+        bars_for_strategy = self.bars.copy()
+        bars_for_strategy.columns = [c.lower() for c in bars_for_strategy.columns]
+        signals = self.strategy.generate_signals(bars_for_strategy)
         if signals is None or signals.empty:
             return
+
+
+        import logging, pprint
+        logging.basicConfig(level=logging.DEBUG)
+        raw_contracts = self.config.get("contracts", 1)
+        logging.debug("backtester: raw_contracts repr=%r type=%s", raw_contracts, type(raw_contracts))
+        pprint.pprint(raw_contracts)
+
 
         # default contracts
         contracts = int(self.config.get("contracts", 1))
