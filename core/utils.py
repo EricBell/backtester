@@ -69,24 +69,30 @@ def validate_contract_symbol(symbol: str, merged_config: dict) -> bool:
 
 def load_csv_parse_datetime(path: Path, tz: Optional[str]) -> pd.DataFrame:
     """
-    Load CSV with expected columns [date, time, open, high, low, close, volume].
-    Combine date+time into a single timezone-aware datetime index.
+    Load CSV with expected columns [DateTime, Open, High, Low, Close, Volume] or similar formats.
+    Parse datetime column into a timezone-aware datetime index.
     """
     df = pd.read_csv(path)
-    # Expect date,time columns; try to be flexible
-    if "datetime" in df.columns:
-        dt = pd.to_datetime(df["datetime"])
+    # Try to find datetime column (case-insensitive)
+    datetime_col = None
+    for col in df.columns:
+        if col.lower() in ["datetime", "date_time", "timestamp"]:
+            datetime_col = col
+            break
+    
+    if datetime_col:
+        dt = pd.to_datetime(df[datetime_col])
     else:
-        # Some CSVs use date+time columns
+        # Some CSVs use separate date+time columns
         if "date" in df.columns and "time" in df.columns:
             dt = pd.to_datetime(df["date"].astype(str) + " " + df["time"].astype(str))
         else:
-            # Fallback: try to parse the index or first column
+            # Fallback: try to parse the first column as datetime
             try:
                 first_col = df.columns[0]
                 dt = pd.to_datetime(df[first_col])
             except Exception as e:
-                raise ValueError("Could not find date/time columns in CSV. Expected 'date' and 'time' columns or 'datetime' column.") from e
+                raise ValueError("Could not find date/time columns in CSV. Expected 'DateTime', 'datetime', separate 'date'/'time' columns, or parseable first column.") from e
 
     # Localize/convert timezone
     if dt.dt.tz is None:

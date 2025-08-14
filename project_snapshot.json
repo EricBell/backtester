@@ -1,7 +1,7 @@
 {
   "project": "MES_intraday_backtester",
-  "snapshot_version": "v0.3",
-  "snapshot_time_et": "2025-08-13T15:28:00-04:00",
+  "snapshot_version": "v0.4",
+  "snapshot_time_et": "2025-08-13T16:45:00-04:00",
   "user": {
     "name": "Eric Bell",
     "username": "EricTheRed",
@@ -21,7 +21,7 @@
     "planning_only": true,
     "implement_after_go": true,
     "no_execution_by_AI": true,
-    "data_format_expected": ["CSV columns: date, time, open, high, low, close, volume (ET)"],
+    "data_format_expected": ["CSV columns: DateTime,Open,High,Low,Close,Volume (single datetime column format)"],
     "timezone": "America/New_York (ET) - treat input as ET",
     "session_filter_default": "08:00-12:00 ET",
     "no_continuous_contract_handling": true,
@@ -172,6 +172,8 @@
     "Enforced strict CLI-only contract requirement and disabled filename detection.",
     "Disabled meta-file support by default (can be enabled later if desired).",
     "Added tick_size to per-contract metadata and kept dollars_per_point per contract.",
-    "Updated snapshot to v0.3 reflecting these choices."
+    "Updated snapshot to v0.3 reflecting these choices.",
+    "Modified data loader in core/utils.py to handle DateTime,Open,High,Low,Close,Volume CSV format with case-insensitive datetime column detection.",
+    "Updated snapshot to v0.4 reflecting CSV format changes."
   ]
 }
