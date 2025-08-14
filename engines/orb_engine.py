@@ -158,6 +158,30 @@ class ORBStrategy:
                 session_df = session_df.sort_index()
                 yield date_val, session_df
 
+
+    def _append_signal_dedup(self, signals_list, seen_keys, sig):
+        """
+        Append sig (dict) to signals_list only if its key is not in seen_keys.
+        Key is (timestamp_iso, side, float(signal_price)).
+        Preserves first occurrence.
+        """
+        try:
+            ts = sig.get("timestamp")
+            # normalize timestamp to string key
+            ts_key = ts.isoformat() if hasattr(ts, "isoformat") else str(ts)
+            side = sig.get("side")
+            price = float(sig.get("signal_price"))
+            key = (ts_key, side, price)
+        except Exception:
+            # if anything is malformed, still attempt to append (be conservative)
+            key = None
+
+        if key is not None:
+            if key in seen_keys:
+                return
+            seen_keys.add(key)
+        signals_list.append(sig)                
+
     def generate_signals(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Return signals DataFrame with columns:
@@ -168,6 +192,8 @@ class ORBStrategy:
         print('generate_signals called with df rows:', len(df))
 
         signals = []
+        seen_keys = set()
+
         # ensure we have columns open/high/low/close/volume
         if not {"open","high","low","close","volume"}.issubset(df.columns):
             return pd.DataFrame(columns=[
@@ -360,7 +386,7 @@ class ORBStrategy:
                         t1 = close + self.take_profit_r[0] * initial_r
                         t2 = close + (self.take_profit_r[1] if len(self.take_profit_r) > 1 else (2.0 * initial_r))
                         meta = {"date": str(date), "or_high": float(or_high), "or_low": float(or_low), "reason": "ORB long"}
-                        signals.append({
+                        signals_dict =   {
                             "timestamp": ts,
                             "side": "LONG",
                             "signal_price": close,
@@ -369,7 +395,8 @@ class ORBStrategy:
                             "target1": float(t1),
                             "target2": float(t2),
                             "meta": meta
-                        })
+                        }
+                        self._append_signal_dedup(signals, seen_keys, signals_dict)
                         # one long signal per OR
                         break
 
@@ -425,7 +452,7 @@ class ORBStrategy:
                         t1 = close - self.take_profit_r[0] * initial_r
                         t2 = close - (self.take_profit_r[1] if len(self.take_profit_r) > 1 else (2.0 * initial_r))
                         meta = {"date": str(date), "or_high": float(or_high), "or_low": float(or_low), "reason": "ORB short"}
-                        signals.append({
+                        signals_dict =   {
                             "timestamp": ts,
                             "side": "SHORT",
                             "signal_price": close,
@@ -434,7 +461,8 @@ class ORBStrategy:
                             "target1": float(t1),
                             "target2": float(t2),
                             "meta": meta
-                        })
+                        }
+                        self._append_signal_dedup(signals, seen_keys, signals_dict)
                         break
             
             # Flush debug buffer at end of each day
