@@ -33,20 +33,37 @@ class OrbDebug:
             return
         try:
             df = pd.DataFrame(self._rows)
-            # Ensure timestamp column exists and is datetime
+            # Handle timestamp column - convert parseable ones, keep others as-is
             if 'timestamp' in df.columns:
-                df['timestamp'] = pd.to_datetime(df['timestamp'])
+                # Try to convert timestamps, fallback to string for invalid ones
+                timestamp_col = []
+                for ts in df['timestamp']:
+                    try:
+                        timestamp_col.append(pd.to_datetime(ts))
+                    except (ValueError, TypeError):
+                        # For non-parseable timestamps, use current date for grouping
+                        timestamp_col.append(pd.Timestamp.now().normalize())
+                df['timestamp_parsed'] = timestamp_col
             elif 'datetime' in df.columns:
-                df['timestamp'] = pd.to_datetime(df['datetime'])
+                # Similar logic for datetime column
+                timestamp_col = []
+                for ts in df['datetime']:
+                    try:
+                        timestamp_col.append(pd.to_datetime(ts))
+                    except (ValueError, TypeError):
+                        timestamp_col.append(pd.Timestamp.now().normalize())
+                df['timestamp_parsed'] = timestamp_col
             else:
-                # try converting index if present; else add current time
-                df['timestamp'] = pd.to_datetime(df.get('timestamp', pd.Timestamp.now()))
-            # group by date (in the timestamp's timezone if tz-aware)
-            df['date'] = df['timestamp'].dt.date
+                # No timestamp column found, use current time
+                df['timestamp_parsed'] = pd.Timestamp.now()
+            
+            # Group by date (using parsed timestamps for grouping)
+            df['date'] = df['timestamp_parsed'].dt.date
             self.outdir.mkdir(parents=True, exist_ok=True)
             for date_val, grp in df.groupby('date'):
                 fname = self.outdir / f"orb_debug_{date_val}.csv"
-                grp = grp.drop(columns=['date'])
+                # Drop the helper columns before saving
+                grp = grp.drop(columns=['date', 'timestamp_parsed'])
                 grp.to_csv(fname, index=False)
                 logger.info("Wrote ORB debug file: %s (rows=%d)", str(fname), len(grp))
         except Exception as e:

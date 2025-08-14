@@ -24,9 +24,9 @@ import traceback, sys
 try:
     print("DEBUG: orb_debugger type:", type(orb_debugger))
     print("DEBUG: orb_debugger public attrs:", [n for n in dir(orb_debugger) if not n.startswith('_')])
-    orb_debugger.log({"timestamp":"init-test", "note":"init-called"})
-    orb_debugger.flush()
-    print("ORB_DEBUG init test succeeded - file should be written to outdir")
+    # orb_debugger.log({"timestamp":"init-test", "note":"init-called"})
+    # orb_debugger.flush()
+    # print("ORB_DEBUG init test succeeded - file should be written to outdir")
 except Exception as exc:
     print("ORB_DEBUG init test FAILED:", repr(exc))
     traceback.print_exc(file=sys.stdout)
