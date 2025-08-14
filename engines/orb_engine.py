@@ -40,7 +40,7 @@ class ORBStrategy:
         self.params = params or {}
         self.open_range_minutes = int(self.params.get("open_range_minutes", 15))
         self.require_volume_confirmation = bool(self.params.get("require_volume_confirmation", True))
-        self.volume_lookback = int(self.params.get("volume_lookback", 20))
+        self.volume_lookback = int(self.params.get("volume_lookback", 5))
         self.take_profit_r = list(self.params.get("take_profit_r", [1.0, 2.0]))
         self.stop_policy = self.params.get("stop_policy", "structure")
         self.atr_multiplier_stop = float(self.params.get("atr_multiplier_stop", 1.0))
