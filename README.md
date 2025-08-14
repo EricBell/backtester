@@ -61,3 +61,30 @@ Tests
 1. Running config validator
    1. $  python -m pytest -q tests/test_config_validation.py
    
+Debugging
+Here are a few ways to get DEBUG_ORB=1 into your WSL environment:
+
+1) For your current session only  
+   In your shell just run:  
+     export DEBUG_ORB=1  
+   You can now run whatever program needs it in that same shell.
+
+2) Permanently, for your user only  
+   a) Open your ~/.bashrc (or ~/.profile) in an editor:  
+      nano ~/.bashrc  
+   b) Add this line at the end:  
+      export DEBUG_ORB=1  
+   c) Save & exit, then reload it:  
+      source ~/.bashrc  
+   From now on every new shell will have DEBUG_ORB=1 set.
+
+3) System-wide, for all users  
+   Edit /etc/environment (you’ll need sudo):  
+     sudo nano /etc/environment  
+   Add a line (no “export”):  
+     DEBUG_ORB="1"  
+   Save & reboot WSL (`wsl --shutdown` from Windows Cmd/PowerShell) or just relaunch your distro.
+
+4) One-off on a single command  
+   You can also prefix any command without polluting your shell:  
+     DEBUG_ORB=1 ./your-app --some-arg  

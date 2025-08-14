@@ -13,6 +13,26 @@ from engines.orb_debug import OrbDebug
 _debug_enabled = os.getenv("DEBUG_ORB", "0") not in ("0", "", "false", "False")
 _debug_outdir = Path(os.getenv("ORB_DEBUG_OUTDIR", "outputs/orb_debug"))
 orb_debugger = OrbDebug(enabled=_debug_enabled, outdir=_debug_outdir)
+print("ORB_DEBUG enabled =", _debug_enabled, "outdir =", _debug_outdir)
+# right after orb_debugger = OrbDebug(...)
+# orb_debugger.log({"timestamp":"init-test", "note":"init-called"})
+# orb_debugger.flush()
+# print("ORB_DEBUG test log written (init).")
+
+# debug probe — add immediately after orb_debugger = OrbDebug(...)
+import traceback, sys
+try:
+    print("DEBUG: orb_debugger type:", type(orb_debugger))
+    print("DEBUG: orb_debugger public attrs:", [n for n in dir(orb_debugger) if not n.startswith('_')])
+    orb_debugger.log({"timestamp":"init-test", "note":"init-called"})
+    orb_debugger.flush()
+    print("ORB_DEBUG init test succeeded - file should be written to outdir")
+except Exception as exc:
+    print("ORB_DEBUG init test FAILED:", repr(exc))
+    traceback.print_exc(file=sys.stdout)
+
+
+
 
 
 class ORBStrategy:
