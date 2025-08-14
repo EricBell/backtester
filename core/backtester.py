@@ -2,12 +2,35 @@
 core/backtester.py - skeleton backtester that integrates Strategy objects and simulates execution.
 """
 
+
 from dataclasses import dataclass
 from typing import Dict, Any
 import pandas as pd
 from pathlib import Path
 import json
 from datetime import datetime
+
+
+# def get_config_int(cfg, key, default=1, preferred_keys=("value", "val", "contracts", "qty", "quantity", "n", "count")):
+#     """
+#     Safely get an integer from cfg[key]. If cfg[key] is a dict, try common internal keys
+#     or fall back to the first value. Returns int(default) on failure.
+#     """
+#     raw = cfg.get(key, default)
+#     if isinstance(raw, dict):
+#         for k in preferred_keys:
+#             if k in raw:
+#                 raw = raw[k]
+#                 break
+#         else:
+#             try:
+#                 raw = next(iter(raw.values()))
+#             except Exception:
+#                 raw = default
+#     try:
+#         return int(raw)
+#     except (TypeError, ValueError):
+#         return int(default)
 
 @dataclass
 class TradeRecord:
@@ -31,6 +54,38 @@ class TradeRecord:
 class Backtester:
     # __init__ unchanged
 
+   
+
+
+    # --- add near top of file (after imports) ---
+    def get_config_int(cfg, key, default=1, preferred_keys=("value", "val", "contracts", "qty", "quantity", "n", "count")):
+        """
+        Safely get an integer from cfg[key]. If cfg[key] is a dict, try common internal keys
+        or fall back to the first value. Returns int(default) on failure.
+        """
+        raw = cfg.get(key, default)
+        # If the config value is a dict, try preferred keys then fall back to first value
+        if isinstance(raw, dict):
+            for k in preferred_keys:
+                if k in raw:
+                    raw = raw[k]
+                    break
+            else:
+                # fallback: first value or default
+                try:
+                    raw = next(iter(raw.values()))
+                except Exception:
+                    raw = default
+        # Convert to int, with safe fallback
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            return int(default)
+
+ 
+
+
+
     def run(self):
         """
         - Ask strategy to generate signals
@@ -50,18 +105,54 @@ class Backtester:
         import logging, pprint
         logging.basicConfig(level=logging.DEBUG)
         raw_contracts = self.config.get("contracts", 1)
+
+
+
+
         logging.debug("backtester: raw_contracts repr=%r type=%s", raw_contracts, type(raw_contracts))
         pprint.pprint(raw_contracts)
 
 
         # default contracts
-        contracts = int(self.config.get("contracts", 1))
+            # contracts = int(self.config.get("contracts", 1))
+        # --- replace the original contracts assignment (around line ~50) with this ---
+        contracts = get_config_int(self.config, "contracts", default=1)
+
+
+
+
+
+
+
+
         slippage_points = float(self.config.get("slippage_points", 0.0))
         commission_rt = float(self.config.get("commission_roundtrip", 0.0))
         tick_size = float(self.config["contract_meta"].get("tick_size", 0.0))
         dollars_per_point = float(self.dollars_per_point)
 
         for idx, sig in signals.iterrows():
+
+            # sig.index = [k.lower() if isinstance(k, str) else k for k in sig.index]
+            # normalize the signal row to a plain dict with lowercase string keys
+            sig = { (k.lower() if isinstance(k, str) else k): v for k, v in sig.items() }
+            # DEBUG: inspect signal row to find missing keys (insert immediately after "for idx, sig in signals.iterrows():")
+            import pprint
+            print(f"[DEBUG_SIGNAL {idx}] -- START SIGNAL DEBUG --")
+            print(f"[DEBUG] signals.columns = {list(signals.columns)}")
+            try:
+                keys = list(sig.index)
+            except Exception:
+                keys = None
+            print(f"[DEBUG_SIGNAL {idx}] sig.index keys = {keys}")
+            try:
+                sig_dict = sig.to_dict()
+                print(f"[DEBUG_SIGNAL {idx}] sig as dict:")
+                pprint.pprint(sig_dict)
+            except Exception as e:
+                print(f"[DEBUG_SIGNAL {idx}] sig.to_dict() failed: {e}")
+            print(f"[DEBUG_SIGNAL {idx}] -- END SIGNAL DEBUG --")
+
+
             ts = pd.to_datetime(sig["timestamp"])
             side = sig["side"]
             signal_time = ts
@@ -79,8 +170,12 @@ class Backtester:
                 stop_price = t1 = t2 = None
 
             # print key runtime settings and signal values
+            # --- inside the signals loop, replace the debug print that called int(...) with this safe print ---
+            raw_contracts = self.config.get("contracts", 1)
             print(f"[DEBUG_SIGNAL {idx}] ts={signal_time} side={side} sig_price={sig_price} stop={stop_price} t1={t1} t2={t2}")
-            print(f"[DEBUG_SIGNAL {idx}] config_contracts={int(self.config.get('contracts',1))} slippage_points={slippage_points} commission_rt={commission_rt} tick_size={tick_size} dollars_per_point={dollars_per_point}")
+            print(f"[DEBUG_SIGNAL {idx}] config_contracts_raw={repr(raw_contracts)} type={type(raw_contracts)} slippage_points={slippage_points} commission_rt={commission_rt} tick_size={tick_size} dollars_per_point={dollars_per_point}")            
+            # print(f"[DEBUG_SIGNAL {idx}] ts={signal_time} side={side} sig_price={sig_price} stop={stop_price} t1={t1} t2={t2}")
+            # print(f"[DEBUG_SIGNAL {idx}] config_contracts={int(self.config.get('contracts',1))} slippage_points={slippage_points} commission_rt={commission_rt} tick_size={tick_size} dollars_per_point={dollars_per_point}")
 
             # locate the next bar (same logic Backtester uses) but print context before deciding
             next_bars = self.bars.loc[self.bars.index > signal_time]
@@ -116,7 +211,8 @@ class Backtester:
             if next_bars.empty:
                 continue
             entry_bar = next_bars.iloc[0]
-            next_open = float(entry_bar["open"])
+            # next_open = float(entry_bar["open"])
+            next_open = float(entry_bar.get("open", entry_bar.get("Open")))
 
             sign = 1 if side == "LONG" else -1
             entry_fill = next_open + sign * slippage_points  # slippage in points
