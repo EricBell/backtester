@@ -4,6 +4,17 @@ import numpy as np
 from core import indicators
 from datetime import timedelta, time
 
+# at top of engines/orb_engine.py (or near other imports)
+import os
+from pathlib import Path
+from engines.orb_debug import OrbDebug
+
+# enable via env var DEBUG_ORB=1 and optional ORB_DEBUG_OUTDIR path
+_debug_enabled = os.getenv("DEBUG_ORB", "0") not in ("0", "", "false", "False")
+_debug_outdir = Path(os.getenv("ORB_DEBUG_OUTDIR", "outputs/orb_debug"))
+orb_debugger = OrbDebug(enabled=_debug_enabled, outdir=_debug_outdir)
+
+
 class ORBStrategy:
     def __init__(self, params: dict):
         self.params = params or {}
@@ -86,6 +97,41 @@ class ORBStrategy:
                     # EMI: EMA slope or price > ema9 for confirmation
                     ema_ok = (ema9 is not None) and (close > ema9)
                     vol_ok = (not self.require_volume_confirmation) or (vol >= vol_avg)
+                    
+                    # Log breakout candidate evaluation
+                    reject_reasons = []
+                    if not ema_ok:
+                        reject_reasons.append("ema_fail")
+                    if not vol_ok:
+                        reject_reasons.append("volume_fail")
+                    
+                    candidate_row = {
+                        "timestamp": ts,
+                        "local_time": ts.isoformat(),
+                        "close": float(close),
+                        "open": float(row["open"]),
+                        "high": float(high),
+                        "low": float(low),
+                        "volume": int(vol),
+                        "or_high": float(or_high),
+                        "or_low": float(or_low),
+                        "breakout_dir": "long",
+                        "ema9": float(ema9) if ema9 is not None else None,
+                        "vwap": None,
+                        "volume_avg": float(vol_avg),
+                        "ema_pass": bool(ema_ok),
+                        "vwap_pass": True,
+                        "volume_pass": bool(vol_ok),
+                        "time_rule_pass": True,
+                        "decision": "ACCEPT" if (ema_ok and vol_ok) else "REJECT",
+                        "reject_reasons": ";".join(reject_reasons) if reject_reasons else "",
+                        "planned_contracts": None,
+                        "planned_entry": None,
+                        "planned_stop": None,
+                        "planned_target": None,
+                    }
+                    orb_debugger.log(candidate_row)
+                    
                     if ema_ok and vol_ok:
                         # determine stop: breakout candle low (structure) or ATR-based if configured
                         if self.stop_policy == "structure":
@@ -118,6 +164,41 @@ class ORBStrategy:
                     vol_ok = (not self.require_volume_confirmation) or (vol <= vol_avg)  # for short can accept lower vol on pull?
                     # keep same vol rule for shorts (depends on design); we'll accept vol_ok if vol >= vol_avg (consistent)
                     vol_ok = (not self.require_volume_confirmation) or (vol >= vol_avg)
+                    
+                    # Log breakout candidate evaluation
+                    reject_reasons = []
+                    if not ema_ok:
+                        reject_reasons.append("ema_fail")
+                    if not vol_ok:
+                        reject_reasons.append("volume_fail")
+                    
+                    candidate_row = {
+                        "timestamp": ts,
+                        "local_time": ts.isoformat(),
+                        "close": float(close),
+                        "open": float(row["open"]),
+                        "high": float(high),
+                        "low": float(low),
+                        "volume": int(vol),
+                        "or_high": float(or_high),
+                        "or_low": float(or_low),
+                        "breakout_dir": "short",
+                        "ema9": float(ema9) if ema9 is not None else None,
+                        "vwap": None,
+                        "volume_avg": float(vol_avg),
+                        "ema_pass": bool(ema_ok),
+                        "vwap_pass": True,
+                        "volume_pass": bool(vol_ok),
+                        "time_rule_pass": True,
+                        "decision": "ACCEPT" if (ema_ok and vol_ok) else "REJECT",
+                        "reject_reasons": ";".join(reject_reasons) if reject_reasons else "",
+                        "planned_contracts": None,
+                        "planned_entry": None,
+                        "planned_stop": None,
+                        "planned_target": None,
+                    }
+                    orb_debugger.log(candidate_row)
+                    
                     if ema_ok and vol_ok:
                         if self.stop_policy == "structure":
                             stop_price = float(high)
@@ -140,6 +221,9 @@ class ORBStrategy:
                             "meta": meta
                         })
                         break
+            
+            # Flush debug buffer at end of each day
+            orb_debugger.flush()
 
         if not signals:
             return pd.DataFrame(columns=[
