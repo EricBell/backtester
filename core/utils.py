@@ -67,49 +67,142 @@ def validate_contract_symbol(symbol: str, merged_config: dict) -> bool:
     return symbol in ctrs
 
 
-def load_csv_parse_datetime(path: Path, tz: Optional[str]) -> pd.DataFrame:
+from pathlib import Path
+from typing import Optional, Sequence
+import pandas as pd
+import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
+
+def load_csv_parse_datetime(path: Path,
+                            datetime_col_candidates: Optional[Sequence[str]] = None,
+                            tz_source: Optional[str] = None,
+                            tz_target: str = 'America/New_York',
+                            require_ohlcv: bool = True,
+                            tick_size: Optional[float] = 0.25) -> pd.DataFrame:
     """
-    Load CSV with expected columns [DateTime, Open, High, Low, Close, Volume] or similar formats.
-    Parse datetime column into a timezone-aware datetime index.
+    Load CSV with combined DateTime or separate date & time columns and return a DataFrame
+    with index = timezone-aware DatetimeIndex (tz_target) and columns:
+      date (YYYY-MM-DD), time (HH:MM:SS), Open, High, Low, Close, Volume
+
+    Params:
+      - path: Path to CSV
+      - datetime_col_candidates: optional list of candidate datetime column names
+      - tz_source: timezone of timestamps in file (e.g., 'UTC'). If provided, naive timestamps are localized to tz_source then converted to tz_target.
+      - tz_target: timezone for returned index (default 'America/New_York')
+      - require_ohlcv: raise if OHLCV columns are missing
+      - tick_size: optional tick size (in index points) to validate price alignment (e.g. 0.25)
+    Note: If tz_source is None and timestamps are naive, this function will localize naive timestamps to tz_target.
     """
+    # Read + normalize headers
     df = pd.read_csv(path)
-    # Try to find datetime column (case-insensitive)
+    df.columns = [str(c).strip() for c in df.columns]
+
+    # datetime candidates
+    if datetime_col_candidates is None:
+        datetime_col_candidates = ["datetime", "date_time", "timestamp", "date", "time"]
+    candidates_lower = [c.lower() for c in datetime_col_candidates]
+
+    # find combined datetime column preferring combined names (not separate 'date'/'time')
     datetime_col = None
     for col in df.columns:
-        if col.lower() in ["datetime", "date_time", "timestamp"]:
+        lc = col.strip().lower()
+        if lc in candidates_lower and lc not in ('date', 'time'):
             datetime_col = col
             break
-    
+
+    # build datetime Series
     if datetime_col:
-        dt = pd.to_datetime(df[datetime_col])
+        dt = pd.to_datetime(df[datetime_col], errors='raise')
     else:
-        # Some CSVs use separate date+time columns
-        if "date" in df.columns and "time" in df.columns:
-            dt = pd.to_datetime(df["date"].astype(str) + " " + df["time"].astype(str))
+        cols_lower = [c.lower() for c in df.columns]
+        if 'date' in cols_lower and 'time' in cols_lower:
+            date_col = next(c for c in df.columns if c.lower() == 'date')
+            time_col = next(c for c in df.columns if c.lower() == 'time')
+            dt = pd.to_datetime(df[date_col].astype(str).str.strip() + ' ' + df[time_col].astype(str).str.strip(),
+                                errors='raise')
         else:
-            # Fallback: try to parse the first column as datetime
-            try:
-                first_col = df.columns[0]
-                dt = pd.to_datetime(df[first_col])
-            except Exception as e:
-                raise ValueError("Could not find date/time columns in CSV. Expected 'DateTime', 'datetime', separate 'date'/'time' columns, or parseable first column.") from e
+            # fallback: try first column
+            first_col = df.columns[0]
+            dt = pd.to_datetime(df[first_col], errors='raise')
 
-    # Localize/convert timezone
+    # tz handling
     if dt.dt.tz is None:
-        # naive -> localize to tz if provided
-        if tz:
-            dt = dt.dt.tz_localize(tz)
+        if tz_source:
+            try:
+                dt = dt.dt.tz_localize(tz_source).dt.tz_convert(tz_target)
+            except Exception as e:
+                raise ValueError(f"Failed to localize datetimes to tz_source={tz_source}: {e}") from e
         else:
-            dt = dt.dt.tz_localize("UTC")  # fallback
+            # Explicit decision: treat naive timestamps as already in tz_target
+            # (If your CSV is in UTC, pass tz_source='UTC' to convert properly.)
+            dt = dt.dt.tz_localize(tz_target)
     else:
-        # convert to tz if provided
-        if tz:
-            dt = dt.dt.tz_convert(tz)
+        if tz_target:
+            try:
+                dt = dt.dt.tz_convert(tz_target)
+            except Exception as e:
+                raise ValueError(f"Failed to convert datetimes to tz_target={tz_target}: {e}") from e
 
-    df["datetime"] = dt
-    df = df.set_index("datetime").sort_index()
-    return df
+    # Normalize OHLCV column names (map to Title case)
+    col_map = {}
+    for col in df.columns:
+        lc = col.strip().lower()
+        if lc in ('open', 'high', 'low', 'close', 'volume'):
+            col_map[col] = lc.capitalize()
+    df = df.rename(columns=col_map)
 
+    required_cols = ['Open', 'High', 'Low', 'Close', 'Volume'] if require_ohlcv else []
+    missing = [c for c in required_cols if c not in df.columns]
+    if missing:
+        raise ValueError(f"Missing required OHLCV columns: {missing}. Found columns: {df.columns.tolist()}")
+
+    # attach datetime and set index
+    df['datetime'] = dt
+    df = df.set_index('datetime').sort_index()
+
+    # create snapshot schema date/time columns
+    df['date'] = df.index.strftime('%Y-%m-%d')
+    df['time'] = df.index.strftime('%H:%M:%S')
+
+    # basic validations
+    dup_count = df.index.duplicated().sum()
+    if dup_count:
+        dup_idxs = df.index[df.index.duplicated()]
+        first_dup = dup_idxs[0] if len(dup_idxs) else None
+        raise ValueError(f"Duplicate timestamps found in CSV: {dup_count} duplicates (first dup at {first_dup})")
+
+    nulls = df[required_cols].isnull().sum().to_dict() if required_cols else {}
+    if any(v > 0 for v in nulls.values()):
+        raise ValueError(f"Found nulls in required OHLCV columns: {nulls}")
+
+    # optional tick alignment check (numerically stable)
+    if tick_size:
+        misaligned = {}
+        for col in ['Open', 'High', 'Low', 'Close']:
+            if col in df.columns:
+                # convert to float and compute number of ticks
+                div = df[col].astype(float) / float(tick_size)
+                # mismatch if distance to nearest integer > tolerance
+                small_tol = 1e-6
+                mismatches = (np.abs(div - np.round(div)) > small_tol)
+                misaligned_count = int(mismatches.sum())
+                if misaligned_count:
+                    misaligned[col] = misaligned_count
+        if misaligned:
+            raise ValueError(f"Price tick alignment issue detected (not multiples of {tick_size}): {misaligned}")
+
+
+
+    # logging summary
+    try:
+        logger.info("Loaded CSV '%s' rows=%d index_min=%s index_max=%s", str(path), len(df), df.index.min(), df.index.max())
+    except Exception:
+        # best-effort logging; don't crash on logging
+        pass
+
+    return df[['date', 'time', 'Open', 'High', 'Low', 'Close', 'Volume']]
 
 def derive_data_range(df) -> Tuple[datetime, datetime]:
     idx = df.index

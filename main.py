@@ -91,7 +91,7 @@ def main(
         typer.echo(f"Data file not found: {data_path}")
         raise typer.Exit(code=2)
 
-    df = utils.load_csv_parse_datetime(data_path, tz=merged.get("timezone") or merged.get("tz"))
+    df = utils.load_csv_parse_datetime(data_path, tz_target=merged.get("timezone") or merged.get("tz"))
     data_start, data_end = utils.derive_data_range(df)
 
     # Determine effective start/end
