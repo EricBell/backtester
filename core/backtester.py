@@ -9,28 +9,43 @@ import pandas as pd
 from pathlib import Path
 import json
 from datetime import datetime
+import math
 
 
-# def get_config_int(cfg, key, default=1, preferred_keys=("value", "val", "contracts", "qty", "quantity", "n", "count")):
-#     """
-#     Safely get an integer from cfg[key]. If cfg[key] is a dict, try common internal keys
-#     or fall back to the first value. Returns int(default) on failure.
-#     """
-#     raw = cfg.get(key, default)
-#     if isinstance(raw, dict):
-#         for k in preferred_keys:
-#             if k in raw:
-#                 raw = raw[k]
-#                 break
-#         else:
-#             try:
-#                 raw = next(iter(raw.values()))
-#             except Exception:
-#                 raw = default
-#     try:
-#         return int(raw)
-#     except (TypeError, ValueError):
-#         return int(default)
+def round_to_tick(price, tick_size, direction="nearest"):
+    """Round price to nearest tick size."""
+    if tick_size <= 0:
+        return price
+    if direction == "nearest":
+        return round(price / tick_size) * tick_size
+    elif direction == "up":
+        return math.ceil(price / tick_size) * tick_size
+    elif direction == "down":
+        return math.floor(price / tick_size) * tick_size
+    else:
+        return round(price / tick_size) * tick_size
+
+
+def get_config_int(cfg, key, default=1, preferred_keys=("value", "val", "contracts", "qty", "quantity", "n", "count")):
+    """
+    Safely get an integer from cfg[key]. If cfg[key] is a dict, try common internal keys
+    or fall back to the first value. Returns int(default) on failure.
+    """
+    raw = cfg.get(key, default)
+    if isinstance(raw, dict):
+        for k in preferred_keys:
+            if k in raw:
+                raw = raw[k]
+                break
+        else:
+            try:
+                raw = next(iter(raw.values()))
+            except Exception:
+                raw = default
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return int(default)
 
 @dataclass
 class TradeRecord:
@@ -52,35 +67,19 @@ class TradeRecord:
     contract: str
 
 class Backtester:
-    # __init__ unchanged
+    def __init__(self, strategy, bars_df: pd.DataFrame, config: Dict[str, Any], outdir: Path):
+        self.strategy = strategy
+        self.bars = bars_df
+        self.config = config
+        self.outdir = outdir
+        self.trades = []  # list of TradeRecord
+        self.trade_id_seq = 1
+        # dollars_per_point resolved from contract meta
+        self.dollars_per_point = config["contract_meta"]["dollars_per_point"]
 
    
 
 
-    # --- add near top of file (after imports) ---
-    def get_config_int(cfg, key, default=1, preferred_keys=("value", "val", "contracts", "qty", "quantity", "n", "count")):
-        """
-        Safely get an integer from cfg[key]. If cfg[key] is a dict, try common internal keys
-        or fall back to the first value. Returns int(default) on failure.
-        """
-        raw = cfg.get(key, default)
-        # If the config value is a dict, try preferred keys then fall back to first value
-        if isinstance(raw, dict):
-            for k in preferred_keys:
-                if k in raw:
-                    raw = raw[k]
-                    break
-            else:
-                # fallback: first value or default
-                try:
-                    raw = next(iter(raw.values()))
-                except Exception:
-                    raw = default
-        # Convert to int, with safe fallback
-        try:
-            return int(raw)
-        except (TypeError, ValueError):
-            return int(default)
 
  
 
@@ -245,8 +244,8 @@ class Backtester:
             post_bars = next_bars  # includes entry_bar and onwards
             exited = False
             for j, prow in post_bars.iterrows():
-                high = float(prow["high"])
-                low = float(prow["low"])
+                high = float(prow.get("high", prow.get("High")))
+                low = float(prow.get("low", prow.get("Low")))
                 # check targets/stops depending on side
                 if side == "LONG":
                     # check stop first (adverse)
@@ -432,7 +431,7 @@ class Backtester:
             # if not exited by targets or stop and bars exhausted, close at last bar close (market-on-close)
             if not exited:
                 last_bar = post_bars.iloc[-1]
-                exit_price = float(last_bar["close"])
+                exit_price = float(last_bar.get("close", last_bar.get("Close")))
                 # apply slippage
                 exit_price = exit_price - sign * slippage_points
                 exit_price = round_to_tick(exit_price, tick_size, direction="nearest") if tick_size > 0 else exit_price
@@ -463,15 +462,6 @@ class Backtester:
         # run complete
 
     # keep existing compute_metrics and save_results implementations (unchanged)
-    def __init__(self, strategy, bars_df: pd.DataFrame, config: Dict[str, Any], outdir: Path):
-        self.strategy = strategy
-        self.bars = bars_df
-        self.config = config
-        self.outdir = outdir
-        self.trades = []  # list of TradeRecord
-        self.trade_id_seq = 1
-        # dollars_per_point resolved from contract meta
-        self.dollars_per_point = config["contract_meta"]["dollars_per_point"]
 
     def compute_metrics(self):
         """
