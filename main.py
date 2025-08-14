@@ -100,13 +100,20 @@ def main(
         typer.secho("No valid effective date range determined. Aborting.", fg=typer.colors.RED)
         raise typer.Exit(code=2)
 
-    # Filter to effective date range and session times
+    # Filter to effective date range (do NOT pre-filter to session; strategy will handle session windows)
     df_filtered = utils.filter_date_range(df, eff_start, eff_end)
-    df_session = utils.session_filter(df_filtered, merged.get("session_start"), merged.get("session_end"))
 
-    # Resample if requested/ configured
+    # Resample full-day filtered data; strategy._day_groups will filter to session start/end internally
     resample_minutes = merged.get("resample_minutes", 3)
-    df_resampled = utils.resample_to_n_minutes(df_session, resample_minutes)
+    df_resampled = utils.resample_to_n_minutes(df_filtered, resample_minutes)        
+
+    # # Filter to effective date range and session times
+    # df_filtered = utils.filter_date_range(df, eff_start, eff_end)
+    # df_session = utils.session_filter(df_filtered, merged.get("session_start"), merged.get("session_end"))
+
+    # # Resample if requested/ configured
+    # resample_minutes = merged.get("resample_minutes", 3)
+    # df_resampled = utils.resample_to_n_minutes(df_session, resample_minutes)
 
     # Prepare output dir
     outdir_path = Path(outdir)

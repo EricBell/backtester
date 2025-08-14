@@ -52,52 +52,6 @@ class Backtester:
             ts = pd.to_datetime(sig["timestamp"])
             side = sig["side"]
             signal_time = ts
-
-
-            # --- DEBUG: per-signal diagnostics (insert here) ---
-            try:
-                # parse planned prices safely
-                sig_price = sig.get("signal_price")
-                stop_price = float(sig["stop_price"]) if "stop_price" in sig and pd.notna(sig["stop_price"]) else None
-                t1 = float(sig["target1"]) if "target1" in sig and pd.notna(sig["target1"]) else None
-                t2 = float(sig["target2"]) if "target2" in sig and pd.notna(sig["target2"]) else None
-            except Exception:
-                sig_price = sig.get("signal_price")
-                stop_price = t1 = t2 = None
-
-            # print key runtime settings and signal values
-            print(f"[DEBUG_SIGNAL {idx}] ts={signal_time} side={side} sig_price={sig_price} stop={stop_price} t1={t1} t2={t2}")
-            print(f"[DEBUG_SIGNAL {idx}] config_contracts={int(self.config.get('contracts',1))} slippage_points={slippage_points} commission_rt={commission_rt} tick_size={tick_size} dollars_per_point={dollars_per_point}")
-
-            # locate the next bar (same logic Backtester uses) but print context before deciding
-            next_bars = self.bars.loc[self.bars.index > signal_time]
-            if next_bars.empty:
-                before = self.bars[self.bars.index <= signal_time].tail(3)
-                after = self.bars[self.bars.index > signal_time].head(3)
-                print(f"[DEBUG_SIGNAL {idx}] NO next bar found after {signal_time}")
-                print("[DEBUG_SIGNAL {idx}] nearest before (<=ts):")
-                if not before.empty:
-                    print(before.to_string())
-                else:
-                    print("  <none>")
-                print("[DEBUG_SIGNAL {idx}] nearest after (>ts):")
-                if not after.empty:
-                    print(after.to_string())
-                else:
-                    print("  <none>")
-                # keep behavior: skip this signal
-                continue
-
-            # If next_bar exists, print the entry bar open we will use
-            entry_bar = next_bars.iloc[0]
-            try:
-                next_open = float(entry_bar["open"])
-            except Exception:
-                next_open = None
-            print(f"[DEBUG_SIGNAL {idx}] next_bar={entry_bar.name} next_open={next_open}")
-            # --- end DEBUG block ---
-
-
             # find next bar after signal_time in bars index
             next_bars = self.bars.loc[self.bars.index > signal_time]
             if next_bars.empty:
@@ -363,6 +317,19 @@ class Backtester:
         self.trade_id_seq = 1
         # dollars_per_point resolved from contract meta
         self.dollars_per_point = config["contract_meta"]["dollars_per_point"]
+
+    def run(self):
+        """
+        Skeleton:
+        - Ask strategy to generate signals (DataFrame of signals)
+        - For each signal simulate a fill according to rules (slippage, commission)
+        - Record trades
+        """
+        signals = self.strategy.generate_signals(self.bars)
+        # For skeleton, we won't implement fills; we'll create no trades.
+        # Real implementation: iterate signals and simulate fills.
+        return
+
 
     def compute_metrics(self):
         """
