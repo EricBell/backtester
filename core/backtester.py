@@ -477,8 +477,37 @@ class Backtester:
                     "setup", "params_snapshot", "contract"
                 ]) + "\n")
         else:
-            # TODO: Implement CSV serialization for trades
-            pass
+            # Write trades to CSV
+            import csv
+            with open(trades_file, "w", newline="") as f:
+                writer = csv.writer(f)
+                
+                # Write header
+                writer.writerow([
+                    "trade_id", "entry_timestamp", "exit_timestamp", "side", "entry_price", "exit_price",
+                    "contracts", "gross_pnl", "commission", "slippage_cost", "net_pnl", "r_multiple",
+                    "setup", "params_snapshot", "contract"
+                ])
+                
+                # Write trade data
+                for trade in self.trades:
+                    writer.writerow([
+                        trade.trade_id,
+                        trade.entry_timestamp.isoformat(),
+                        trade.exit_timestamp.isoformat(),
+                        trade.side,
+                        trade.entry_price,
+                        trade.exit_price,
+                        trade.contracts,
+                        trade.gross_pnl,
+                        trade.commission,
+                        trade.slippage_cost,
+                        trade.net_pnl,
+                        trade.r_multiple,
+                        trade.setup,
+                        json.dumps(trade.params_snapshot),
+                        trade.contract
+                    ])
         
         # Save summary JSON
         summary_file = self.outdir / "summary.json"
