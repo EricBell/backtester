@@ -127,7 +127,7 @@ class Backtester:
         # Extract key configuration values
         self.dollars_per_point = config["contract_meta"]["dollars_per_point"]
         self.tick_size = float(config["contract_meta"].get("tick_size", 0.0))
-        self.contracts = get_config_int(config, "contracts", default=1)
+        self.contracts = max(1, get_config_int(config, "contracts", default=1))
         self.slippage_points = float(config.get("slippage_points", 0.0))
         self.commission_rt = float(config.get("commission_roundtrip", 0.0))
         self.contract_name = config.get("resolved_contract", "UNKNOWN")
@@ -181,6 +181,10 @@ class Backtester:
                            gross_pnl: float, commission: float, slippage_cost: float,
                            stop_price: float, setup: str = "UNKNOWN") -> TradeRecord:
         """Create a TradeRecord with calculated metrics."""
+        # Validate contracts > 0
+        if contracts <= 0:
+            raise ValueError(f"Invalid contracts value: {contracts}. Must be > 0.")
+        
         net_pnl = gross_pnl - commission - slippage_cost
         
         # Calculate R-multiple (risk-reward ratio)
@@ -230,7 +234,11 @@ class Backtester:
             
         # Check first target
         elif not first_exit_done and high >= t1:
-            exit_contracts = max(1, math.floor(remaining_contracts / 2))
+            # Ensure we don't exit more contracts than we have, and always exit at least 1
+            if remaining_contracts >= 2:
+                exit_contracts = max(1, math.floor(remaining_contracts / 2))
+            else:
+                exit_contracts = remaining_contracts  # Exit all remaining if < 2 contracts
             exit_price = self._apply_tick_rounding(t1 - self.slippage_points)
             gross_pnl = (exit_price - entry_price) * exit_contracts * self.dollars_per_point
             slippage_cost = self.slippage_points * self.dollars_per_point * exit_contracts
@@ -242,7 +250,7 @@ class Backtester:
             )
             trades.append(trade)
             self.trade_id_seq += 1
-            remaining_contracts -= exit_contracts
+            remaining_contracts = max(0, remaining_contracts - exit_contracts)
             first_exit_done = True
             
         # Check second target (only after first target hit)
@@ -287,7 +295,11 @@ class Backtester:
             
         # Check first target
         elif not first_exit_done and low <= t1:
-            exit_contracts = max(1, math.floor(remaining_contracts / 2))
+            # Ensure we don't exit more contracts than we have, and always exit at least 1
+            if remaining_contracts >= 2:
+                exit_contracts = max(1, math.floor(remaining_contracts / 2))
+            else:
+                exit_contracts = remaining_contracts  # Exit all remaining if < 2 contracts
             exit_price = self._apply_tick_rounding(t1 + self.slippage_points)
             gross_pnl = (entry_price - exit_price) * exit_contracts * self.dollars_per_point
             slippage_cost = self.slippage_points * self.dollars_per_point * exit_contracts
@@ -299,7 +311,7 @@ class Backtester:
             )
             trades.append(trade)
             self.trade_id_seq += 1
-            remaining_contracts -= exit_contracts
+            remaining_contracts = max(0, remaining_contracts - exit_contracts)
             first_exit_done = True
             
         # Check second target (only after first target hit)
@@ -363,6 +375,9 @@ class Backtester:
         
         # Initialize position tracking
         remaining_contracts = self.contracts
+        if remaining_contracts <= 0:
+            print(f"Warning: Invalid contract size {remaining_contracts} for signal, skipping")
+            return
         first_exit_done = False
         
         # Process subsequent bars for exits
