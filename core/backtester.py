@@ -136,20 +136,21 @@ class Backtester:
             sig = { (k.lower() if isinstance(k, str) else k): v for k, v in sig.items() }
             # DEBUG: inspect signal row to find missing keys (insert immediately after "for idx, sig in signals.iterrows():")
             import pprint
-            print(f"[DEBUG_SIGNAL {idx}] -- START SIGNAL DEBUG --")
+            # print(f"[DEBUG_SIGNAL {idx}] -- START SIGNAL DEBUG --")
             print(f"[DEBUG] signals.columns = {list(signals.columns)}")
             try:
                 keys = list(sig.index)
             except Exception:
                 keys = None
-            print(f"[DEBUG_SIGNAL {idx}] sig.index keys = {keys}")
+            # print(f"[DEBUG_SIGNAL {idx}] sig.index keys = {keys}")
             try:
                 sig_dict = sig.to_dict()
-                print(f"[DEBUG_SIGNAL {idx}] sig as dict:")
+                # print(f"[DEBUG_SIGNAL {idx}] sig as dict:")
                 pprint.pprint(sig_dict)
             except Exception as e:
-                print(f"[DEBUG_SIGNAL {idx}] sig.to_dict() failed: {e}")
-            print(f"[DEBUG_SIGNAL {idx}] -- END SIGNAL DEBUG --")
+                # print(f"[DEBUG_SIGNAL {idx}] sig.to_dict() failed: {e}")
+                pass
+            # print(f"[DEBUG_SIGNAL {idx}] -- END SIGNAL DEBUG --")
 
 
             ts = pd.to_datetime(sig["timestamp"])
@@ -171,8 +172,8 @@ class Backtester:
             # print key runtime settings and signal values
             # --- inside the signals loop, replace the debug print that called int(...) with this safe print ---
             raw_contracts = self.config.get("contracts", 1)
-            print(f"[DEBUG_SIGNAL {idx}] ts={signal_time} side={side} sig_price={sig_price} stop={stop_price} t1={t1} t2={t2}")
-            print(f"[DEBUG_SIGNAL {idx}] config_contracts_raw={repr(raw_contracts)} type={type(raw_contracts)} slippage_points={slippage_points} commission_rt={commission_rt} tick_size={tick_size} dollars_per_point={dollars_per_point}")            
+            # print(f"[DEBUG_SIGNAL {idx}] ts={signal_time} side={side} sig_price={sig_price} stop={stop_price} t1={t1} t2={t2}")
+            # print(f"[DEBUG_SIGNAL {idx}] config_contracts_raw={repr(raw_contracts)} type={type(raw_contracts)} slippage_points={slippage_points} commission_rt={commission_rt} tick_size={tick_size} dollars_per_point={dollars_per_point}")
             # print(f"[DEBUG_SIGNAL {idx}] ts={signal_time} side={side} sig_price={sig_price} stop={stop_price} t1={t1} t2={t2}")
             # print(f"[DEBUG_SIGNAL {idx}] config_contracts={int(self.config.get('contracts',1))} slippage_points={slippage_points} commission_rt={commission_rt} tick_size={tick_size} dollars_per_point={dollars_per_point}")
 
@@ -181,13 +182,13 @@ class Backtester:
             if next_bars.empty:
                 before = self.bars[self.bars.index <= signal_time].tail(3)
                 after = self.bars[self.bars.index > signal_time].head(3)
-                print(f"[DEBUG_SIGNAL {idx}] NO next bar found after {signal_time}")
-                print("[DEBUG_SIGNAL {idx}] nearest before (<=ts):")
+                # print(f"[DEBUG_SIGNAL {idx}] NO next bar found after {signal_time}")
+                # print("[DEBUG_SIGNAL {idx}] nearest before (<=ts):")
                 if not before.empty:
                     print(before.to_string())
                 else:
                     print("  <none>")
-                print("[DEBUG_SIGNAL {idx}] nearest after (>ts):")
+                # print("[DEBUG_SIGNAL {idx}] nearest after (>ts):")
                 if not after.empty:
                     print(after.to_string())
                 else:
@@ -201,7 +202,7 @@ class Backtester:
                 next_open = float(entry_bar["open"])
             except Exception:
                 next_open = None
-            print(f"[DEBUG_SIGNAL {idx}] next_bar={entry_bar.name} next_open={next_open}")
+            # print(f"[DEBUG_SIGNAL {idx}] next_bar={entry_bar.name} next_open={next_open}")
             # --- end DEBUG block ---
 
 
