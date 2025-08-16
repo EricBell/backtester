@@ -127,7 +127,8 @@ class Backtester:
         # Extract key configuration values
         self.dollars_per_point = config["contract_meta"]["dollars_per_point"]
         self.tick_size = float(config["contract_meta"].get("tick_size", 0.0))
-        self.contracts = max(1, get_config_int(config, "contracts", default=1))
+        contracts_raw = get_config_int(config, "contracts", default=1)
+        self.contracts = max(1, contracts_raw)
         self.slippage_points = float(config.get("slippage_points", 0.0))
         self.commission_rt = float(config.get("commission_roundtrip", 0.0))
         self.contract_name = config.get("resolved_contract", "UNKNOWN")
@@ -166,8 +167,19 @@ class Backtester:
     def _extract_signal_prices(self, sig: Dict[str, Any]) -> Tuple[float, float, float]:
         """Extract and round stop and target prices from signal."""
         stop_price = float(sig["stop_price"])
-        t1 = float(sig["target1"])
-        t2 = float(sig["target2"])
+        
+        # Handle both single target_price and dual target1/target2 formats
+        if "target1" in sig and "target2" in sig:
+            # Dual target format (ORB engine)
+            t1 = float(sig["target1"])
+            t2 = float(sig["target2"])
+        elif "target_price" in sig:
+            # Single target format (scalping, vwap, pullback engines)
+            target_price = float(sig["target_price"])
+            t1 = target_price  # Use single target as first target
+            t2 = target_price  # Use same target as second target (single exit at t1)
+        else:
+            raise ValueError("Signal must contain either 'target_price' or both 'target1' and 'target2'")
         
         if self.round_to_tick_enabled:
             stop_price = self._apply_tick_rounding(stop_price)
@@ -234,8 +246,11 @@ class Backtester:
             
         # Check first target
         elif not first_exit_done and high >= t1:
-            # Ensure we don't exit more contracts than we have, and always exit at least 1
-            if remaining_contracts >= 2:
+            # For single target strategies (t1 == t2), exit entire position
+            # For dual target strategies, exit partial position
+            if t1 == t2:
+                exit_contracts = remaining_contracts  # Exit entire position for single target
+            elif remaining_contracts >= 2:
                 exit_contracts = max(1, math.floor(remaining_contracts / 2))
             else:
                 exit_contracts = remaining_contracts  # Exit all remaining if < 2 contracts
@@ -252,6 +267,10 @@ class Backtester:
             self.trade_id_seq += 1
             remaining_contracts = max(0, remaining_contracts - exit_contracts)
             first_exit_done = True
+            
+            # If we exited entire position (single target strategy), mark as exited
+            if remaining_contracts == 0:
+                exited = True
             
         # Check second target (only after first target hit)
         elif first_exit_done and high >= t2:
@@ -295,8 +314,11 @@ class Backtester:
             
         # Check first target
         elif not first_exit_done and low <= t1:
-            # Ensure we don't exit more contracts than we have, and always exit at least 1
-            if remaining_contracts >= 2:
+            # For single target strategies (t1 == t2), exit entire position
+            # For dual target strategies, exit partial position
+            if t1 == t2:
+                exit_contracts = remaining_contracts  # Exit entire position for single target
+            elif remaining_contracts >= 2:
                 exit_contracts = max(1, math.floor(remaining_contracts / 2))
             else:
                 exit_contracts = remaining_contracts  # Exit all remaining if < 2 contracts
@@ -313,6 +335,10 @@ class Backtester:
             self.trade_id_seq += 1
             remaining_contracts = max(0, remaining_contracts - exit_contracts)
             first_exit_done = True
+            
+            # If we exited entire position (single target strategy), mark as exited
+            if remaining_contracts == 0:
+                exited = True
             
         # Check second target (only after first target hit)
         elif first_exit_done and low <= t2:

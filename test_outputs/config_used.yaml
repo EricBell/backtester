@@ -1,0 +1,79 @@
+timezone: America/New_York
+commission_roundtrip: 1.75
+slippage_points: 0.25
+session_start: 08:00
+session_end: '12:00'
+resample_minutes: 3
+max_daily_loss: 200.0
+max_trades_per_day: 6
+meta_file_support_enabled: false
+contracts:
+  MES: &id001
+    label: Micro E-mini S&P 500
+    dollars_per_point: 5.0
+    tick_size: 0.25
+    notes: Micro e-mini S&P
+  MNQ:
+    label: Micro E-mini Nasdaq-100
+    dollars_per_point: 2.0
+    tick_size: 0.25
+    notes: Micro e-mini NASDAQ
+  ES:
+    label: E-mini S&P 500
+    dollars_per_point: 50.0
+    tick_size: 12.25
+    notes: E-mini S&P
+min_trades_for_stats_warning: 100
+require_contract: true
+outdir: ./test_outputs
+strict_validation: false
+orb:
+  open_range_minutes: 15
+  require_volume_confirmation: true
+  volume_lookback: 5
+  take_profit_r:
+  - 1.0
+  - 2.0
+  stop_policy: structure
+  atr_multiplier_stop: 1.0
+  stop_fixed_points: 4.0
+  round_stops_to_tick: true
+pullback:
+  ema_fast: 9
+  ema_slow: 20
+  pullback_bars: 3
+  atr_multiplier_stop: 1.2
+  require_bias_by_ema: true
+  round_stops_to_tick: true
+vwap:
+  vwap_extension: 2.0
+  extension_periods: 3
+  volume_threshold: 0.7
+  volume_lookback: 20
+  swing_lookback: 5
+  stop_buffer: 0.5
+  target_r: 1.0
+  stop_r: 0.75
+  session_start: 08:00
+  session_end: '12:00'
+scalping:
+  fast_ema: 9
+  medium_ema: 21
+  slow_ema: 50
+  rsi_period: 14
+  rsi_overbought: 70
+  rsi_oversold: 30
+  rsi_midline: 50
+  macd_fast: 12
+  macd_slow: 26
+  macd_signal: 9
+  threshold_points: 2.0
+  target_r: 1.5
+  stop_r: 0.75
+  take_profit_ticks: 10
+  stop_loss_ticks: 5
+  tick_size: 0.25
+  session_start: 08:00
+  session_end: '12:00'
+resolved_contract: MES
+contract_meta: *id001

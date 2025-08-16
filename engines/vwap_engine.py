@@ -144,6 +144,7 @@ class VWAPFadeStrategy:
                 continue
             
             current = df.iloc[i]
+            prev_bar = df.iloc[i - 1]  # Previous bar for comparison
             next_bar = df.iloc[i + 1]  # For entry confirmation
             
             # Identify short fade opportunity (price extended above VWAP with low volume pullback)
@@ -151,7 +152,7 @@ class VWAPFadeStrategy:
                 current['extended_above'] and
                 current['low_volume'] and
                 current['close'] > current['vwap'] and
-                current['close'] < current['high'].shift(1)  # Pullback from high
+                current['close'] < prev_bar['high']  # Pullback from previous high
             )
             
             # Identify long fade opportunity (price extended below VWAP with low volume pullback)
@@ -159,7 +160,7 @@ class VWAPFadeStrategy:
                 current['extended_below'] and
                 current['low_volume'] and
                 current['close'] < current['vwap'] and
-                current['close'] > current['low'].shift(1)  # Pullback from low
+                current['close'] > prev_bar['low']  # Pullback from previous low
             )
             
             if short_setup:
