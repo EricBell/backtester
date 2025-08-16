@@ -1,0 +1,105 @@
+# config.yaml.example - Example configuration file for MES intraday backtester
+# Copy this file to config.yaml and modify values as needed for your setup
+
+# Global settings
+timezone: "America/New_York"        # Timezone for market data and session times
+commission_roundtrip: 2.50          # Commission per round-trip trade in dollars
+slippage_points: 0.5                # Slippage in points per side
+session_start: "09:30"              # Market session start time (HH:MM)
+session_end: "16:00"                # Market session end time (HH:MM)
+resample_minutes: 5                 # Resample data to N-minute bars
+max_daily_loss: 500.0               # Maximum daily loss limit in dollars
+max_trades_per_day: 10              # Maximum number of trades per day
+min_trades_for_stats_warning: 50    # Warn if fewer trades for statistical significance
+meta_file_support_enabled: true     # Enable metadata file support
+require_contract: true              # Require contract symbol to be specified
+outdir: "./results"                 # Default output directory
+strict_validation: true             # Enable strict price-scale validation checks
+
+# Contract specifications
+contracts:
+  MES:
+    label: "Micro E-mini S&P 500"
+    dollars_per_point: 5.0
+    tick_size: 0.25
+    notes: "Micro e-mini S&P 500 futures"
+  MNQ:
+    label: "Micro E-mini Nasdaq-100"
+    dollars_per_point: 2.0
+    tick_size: 0.25
+    notes: "Micro e-mini NASDAQ-100 futures"
+  ES:
+    label: "E-mini S&P 500"
+    dollars_per_point: 50.0
+    tick_size: 0.25
+    notes: "E-mini S&P 500 futures"
+  NQ:
+    label: "E-mini Nasdaq-100"
+    dollars_per_point: 20.0
+    tick_size: 0.25
+    notes: "E-mini NASDAQ-100 futures"
+
+# Opening Range Breakout (ORB) Strategy
+orb:
+  open_range_minutes: 30            # Opening range period in minutes
+  require_volume_confirmation: false # Require volume confirmation for breakouts
+  volume_lookback: 10               # Periods to look back for volume comparison
+  take_profit_r: [2.0, 3.0]        # Risk multiples for profit targets
+  stop_policy: "atr"                # Stop policy: structure | atr | fixed
+  atr_multiplier_stop: 1.5          # ATR multiplier for stop distance
+  stop_fixed_points: 6.0            # Fixed stop distance in points
+  round_stops_to_tick: false        # Round stop prices to tick increments
+
+# Pullback Strategy
+pullback:
+  ema_fast: 12                      # Fast EMA period
+  ema_slow: 26                      # Slow EMA period
+  pullback_bars: 5                  # Number of bars to identify pullback
+  atr_multiplier_stop: 1.8          # ATR multiplier for stop loss
+  require_bias_by_ema: false        # Require trend bias confirmation
+  round_stops_to_tick: false        # Round stop prices to tick increments
+
+# VWAP Fade Strategy
+vwap:
+  vwap_extension: 3.0               # Points from VWAP to consider extended
+  extension_periods: 5              # How many periods price should be extended
+  volume_threshold: 0.6             # Ratio to average volume for low volume
+  volume_lookback: 30               # Periods to calculate average volume
+  swing_lookback: 8                 # Periods to identify recent swing points
+  stop_buffer: 1.0                  # Additional buffer beyond swing for stop
+  target_r: 1.5                     # Target risk/reward ratio
+  stop_r: 1.0                       # Stop loss as R multiple
+  session_start: "09:30"            # Session start time override
+  session_end: "15:30"              # Session end time override
+
+# MES Scalping Strategy
+scalping:
+  # EMA parameters for trend identification
+  fast_ema: 8                       # Fast EMA period
+  medium_ema: 20                    # Medium EMA period
+  slow_ema: 55                      # Slow EMA period
+  
+  # RSI parameters for momentum confirmation
+  rsi_period: 21                    # RSI calculation period
+  rsi_overbought: 75                # RSI overbought threshold
+  rsi_oversold: 25                  # RSI oversold threshold
+  rsi_midline: 50                   # RSI midline for trend confirmation
+  
+  # MACD parameters for signal confirmation
+  macd_fast: 10                     # MACD fast EMA period
+  macd_slow: 22                     # MACD slow EMA period
+  macd_signal: 8                    # MACD signal line EMA period
+  
+  # Trade management parameters
+  threshold_points: 1.5             # Points for signal confirmation
+  target_r: 2.0                     # Target risk/reward ratio
+  stop_r: 1.0                       # Stop loss as R multiple
+  take_profit_ticks: 8              # Take profit in ticks
+  stop_loss_ticks: 4                # Stop loss in ticks
+  
+  # Contract specifications override
+  tick_size: 0.25                   # Contract tick size in points
+  
+  # Session filter override
+  session_start: "08:30"            # Scalping session start time
+  session_end: "11:30"              # Scalping session end time
