@@ -41,14 +41,22 @@ orb:
   round_stops_to_tick: true
 
 pullback:
-  ema_fast: 9
-  ema_slow: 20
-  pullback_bars: 3
-  atr_period: 14
-  atr_multiplier_stop: 1.2
-  target_r: 2.0
-  stop_fixed_points: 4.0
-  require_bias_by_ema: false
+  # ema_fast: 9
+  # ema_slow: 20
+  ema_fast: 13
+  ema_slow: 30
+  # pullback_bars: 3
+  pullback_bars: 6
+  # atr_period: 14
+  # atr_multiplier_stop: 1.2
+  atr_period: 21
+  atr_multiplier_stop: 2.2
+  # target_r: 2.0
+  target_r: 3.5
+#  stop_fixed_points: 4.0
+  stop_fixed_points: 7.0
+  # require_bias_by_ema: false
+  require_bias_by_ema: true
   round_stops_to_tick: true
   tick_size: 0.25
   session_start: "08:00"
