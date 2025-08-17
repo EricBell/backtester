@@ -114,3 +114,30 @@ Optimizations
   - Session timing: Focus on 9:30-11:00 AM high-volume period
   - Volume filters: Only trade on above-average volume bars
   - ATR-based position sizing: Scale position size with volatility
+
+  ● 3-Contract Tiered Exit Logic:
+
+  Target 1 (first profit level):
+  - exit_contracts = max(1, math.floor(remaining_contracts / 
+  2))
+  - exit_contracts = max(1, math.floor(3 / 2)) = max(1, 1) = 1
+  - 1 contract exits at Target 1
+
+  Target 2 (second profit level):
+  - remaining_contracts = 3 - 1 = 2
+  - 2 contracts remain for Target 2 (or stop loss)
+
+  Current ORB targets from config:
+  take_profit_r: [2.2, 3.2]  # Target 1 at 2.2R, Target 2 at 
+  3.2R
+
+  So for 3 contracts:
+  - 1 contract exits at 2.2R (Target 1) - taking quick profit
+  - 2 contracts hold for 3.2R (Target 2) - seeking larger
+  profit
+  - If Target 2 not hit, remaining 2 contracts exit at stop
+  loss
+
+  This 1:2 allocation gives you a balanced approach: secure
+  some profit early while letting the majority ride for bigger
+  gains.
