@@ -31,14 +31,22 @@ contracts:
     notes: "E-mini S&P"
 
 orb:
-  open_range_minutes: 15
-  require_volume_confirmation: true
-  volume_lookback: 5
-  take_profit_r: [1.0, 2.0]
-  stop_policy: "structure"        # options: structure | atr | fixed
-  atr_multiplier_stop: 1.0
-  stop_fixed_points: 4.0
-  round_stops_to_tick: true
+  # open_range_minutes: 15
+  # require_volume_confirmation: true
+  # volume_lookback: 5
+  # take_profit_r: [1.0, 2.0]
+  # stop_policy: "structure"        # options: structure | atr | fixed
+  # atr_multiplier_stop: 1.0
+  # stop_fixed_points: 4.0
+  # round_stops_to_tick: true
+  open_range_minutes: 30        # Longer from 15 - more significant ranges
+  require_volume_confirmation: true  # Keep enabled
+  volume_lookback: 10           # Longer from 5 - more reliable volume filter
+  take_profit_r: [2.0, 3.0]    # Higher from [1.0, 2.0] - better risk/reward
+  stop_policy: "atr"            # Change from "structure" - more dynamic
+  atr_multiplier_stop: 1.5      # Wider from 1.0 - reduce stop-outs
+  stop_fixed_points: 6.0        # Wider from 4.0 - fallback for noise
+  round_stops_to_tick: true     # Keep  
 
 pullback:
   # ema_fast: 9
