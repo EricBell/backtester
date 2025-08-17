@@ -43,6 +43,7 @@ def main(
     commission: Optional[float] = typer.Option(None, help="Commission round-trip override (overrides config)"),
     slippage: Optional[float] = typer.Option(None, help="Slippage points override (overrides config)"),
     dollars_per_point: Optional[float] = typer.Option(None, help="Optional override for dollars_per_point"),
+    count: Optional[int] = typer.Option(None, help="Number of contracts per trade (overrides config)"),
     outdir: str = typer.Option("./outputs", help="Output directory"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose logging"),
 ):
@@ -63,6 +64,7 @@ def main(
         "slippage_points": slippage,
         # dollars_per_point normally from contract metadata; allow explicit override
         "dollars_per_point_override": dollars_per_point,
+        "position_contracts_override": count,
         "outdir": outdir,
     })
 

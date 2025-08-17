@@ -127,8 +127,13 @@ class Backtester:
         # Extract key configuration values
         self.dollars_per_point = config["contract_meta"]["dollars_per_point"]
         self.tick_size = float(config["contract_meta"].get("tick_size", 0.0))
-        contracts_raw = get_config_int(config, "contracts", default=1)
-        self.contracts = max(1, contracts_raw)
+        # Use command line override first, then contract-specific, then global, then default
+        if config.get("position_contracts_override") is not None:
+            contracts_raw = config.get("position_contracts_override")
+        else:
+            contracts_raw = config.get("contract_meta", {}).get("position_contracts", 
+                                       get_config_int(config, "contracts", default=1))
+        self.contracts = max(1, int(contracts_raw))
         self.slippage_points = float(config.get("slippage_points", 0.0))
         self.contract_name = config.get("resolved_contract", "UNKNOWN")
         # Use contract-specific commission, fallback to global if not found

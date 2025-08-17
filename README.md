@@ -88,3 +88,29 @@ Here are a few ways to get DEBUG_ORB=1 into your WSL environment:
 4) One-off on a single command  
    You can also prefix any command without polluting your shell:  
      DEBUG_ORB=1 ./your-app --some-arg  
+
+Optimizations
+● Strategies to Improve Net P&L:
+
+  1. Reduce Transaction Costs
+  - Lower trade frequency: Tighter filters to trade only highest-probability
+  setups
+  - Reduce slippage: Use limit orders instead of market orders (reduce 0.25
+  slippage)
+  - Better timing: Trade during higher liquidity periods
+
+  2. Improve Win Rate & Profit Factor
+  - Tighter entry filters: Add volume confirmation, ATR filters, or time-of-day
+  restrictions
+  - Better exits: Trailing stops, dynamic targets based on volatility
+  - Risk/reward optimization: Current [2.2, 3.2] targets might be too aggressive
+
+  3. Test Alternative Strategies
+  - VWAP strategy: Mean reversion might have higher win rate
+  - Scalping strategy: Quick 1-2 tick profits with lower transaction cost ratio
+  - Pullback strategy: Trend-following might capture larger moves
+
+  4. Parameter Optimization
+  - Session timing: Focus on 9:30-11:00 AM high-volume period
+  - Volume filters: Only trade on above-average volume bars
+  - ATR-based position sizing: Scale position size with volatility

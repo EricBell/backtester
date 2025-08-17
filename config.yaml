@@ -21,18 +21,21 @@ contracts:
     dollars_per_point: 5.0
     tick_size: 0.25
     commission_roundtrip: 1.74
+    position_contracts: 3
     notes: "Micro e-mini S&P"
   MNQ:
     label: "Micro E-mini Nasdaq-100"
     dollars_per_point: 2.0
     tick_size: 0.25
     commission_roundtrip: 1.74
+    position_contracts: 3
     notes: "Micro e-mini NASDAQ"
   ES:
     label: "E-mini S&P 500"
     dollars_per_point: 50.0
     tick_size: 0.25
     commission_roundtrip: 1.74
+    position_contracts: 1
     notes: "E-mini S&P"
 
 orb:
