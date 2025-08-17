@@ -46,7 +46,7 @@ pullback:
   ema_fast: 13
   ema_slow: 30
   # pullback_bars: 3
-  pullback_bars: 6
+  pullback_bars: 3
   # atr_period: 14
   # atr_multiplier_stop: 1.2
   atr_period: 21
