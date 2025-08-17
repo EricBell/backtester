@@ -114,12 +114,14 @@ class PullbackStrategy:
         # Pullback detection: price has been away from fast EMA for at least pullback_bars periods recently
         df['bullish_pullback_active'] = (
             df['trend_bullish'] & 
-            df['price_below_fast_ema'].rolling(self.pullback_bars).sum() >= 1  # At least 1 period below in last N bars
+            # df['price_below_fast_ema'].rolling(self.pullback_bars).sum() >= 1  # At least 1 period below in last N bars
+            df['price_below_fast_ema'].rolling(self.pullback_bars).sum() >= (self.pullback_bars // 2)  # At least 1 period below in last N bars
         )
         
         df['bearish_pullback_active'] = (
             df['trend_bearish'] & 
-            df['price_above_fast_ema'].rolling(self.pullback_bars).sum() >= 1  # At least 1 period above in last N bars
+            # df['price_above_fast_ema'].rolling(self.pullback_bars).sum() >= 1  # At least 1 period above in last N bars
+            df['price_above_fast_ema'].rolling(self.pullback_bars).sum() >= (self.pullback_bars // 2)  # At least 1 period above in last N bars
         )
         
         # Create empty signals list
