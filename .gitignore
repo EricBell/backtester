@@ -207,7 +207,7 @@ marimo/_lsp/
 __marimo__/
 
 
-config.yaml
+# config.yaml
 data/
 outputs/
 deleteme.*

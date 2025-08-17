@@ -1,0 +1,113 @@
+# config.yaml - production-ready v1 defaults
+timezone: "America/New_York"
+commission_roundtrip: 1.75
+slippage_points: 0.25
+session_start: "08:00"
+session_end: "12:00"
+resample_minutes: 3
+max_daily_loss: 200.0
+max_trades_per_day: 6
+min_trades_for_stats_warning: 100
+meta_file_support_enabled: false
+require_contract: true
+outdir: "./outputs"
+strict_validation: false    # set true to enable strict price-scale checks
+
+contracts:
+  MES:
+    label: "Micro E-mini S&P 500"
+    dollars_per_point: 5.0
+    tick_size: 0.25
+    notes: "Micro e-mini S&P"
+  MNQ:
+    label: "Micro E-mini Nasdaq-100"
+    dollars_per_point: 2.0
+    tick_size: 0.25
+    notes: "Micro e-mini NASDAQ"
+  ES:
+    label: "E-mini S&P 500"
+    dollars_per_point: 50.0
+    tick_size: 12.25
+    notes: "E-mini S&P"
+
+orb:
+  open_range_minutes: 15
+  require_volume_confirmation: true
+  volume_lookback: 5
+  take_profit_r: [1.0, 2.0]
+  stop_policy: "structure"        # options: structure | atr | fixed
+  atr_multiplier_stop: 1.0
+  stop_fixed_points: 4.0
+  round_stops_to_tick: true
+
+pullback:
+  ema_fast: 9
+  ema_slow: 20
+  pullback_bars: 3
+  atr_period: 14
+  atr_multiplier_stop: 1.2
+  target_r: 2.0
+  stop_fixed_points: 4.0
+  require_bias_by_ema: false
+  round_stops_to_tick: true
+  tick_size: 0.25
+  session_start: "08:00"
+  session_end: "12:00"
+
+vwap:
+  # VWAP Fade Strategy parameters
+  # vwap_extension: 2.0           # Points from VWAP to consider extended
+  vwap_extension: 6.0           # Points from VWAP to consider extended
+  extension_periods: 3          # How many periods price should be extended
+  # extension_periods: 5          # How many periods price should be extended
+  # volume_threshold: 0.7         # Ratio to average volume to consider low volume
+  volume_threshold: 0.4         # Ratio to average volume to consider low volume
+  volume_lookback: 20           # Periods to calculate average volume
+  # swing_lookback: 5             # Periods to identify recent swing
+  swing_lookback: 4             # Periods to identify recent swing
+  # stop_buffer: 0.5              # Additional buffer beyond swing for stop
+  stop_buffer: 0.5              # Additional buffer beyond swing for stop
+  # target_r: 1.0                 # Target risk/reward ratio
+  target_r: 1.5                 # Target risk/reward ratio
+  stop_r: 0.75                  # Stop loss as R multiple
+  session_start: "08:00"        # Session start time
+  session_end: "12:00"          # Session end time
+
+scalping:
+  # MES Scalping Strategy parameters
+  # EMA parameters
+  # fast_ema: 9                   # Fast EMA period
+  fast_ema: 8                   # Fast EMA period
+  # medium_ema: 21                # Medium EMA period
+  medium_ema: 25                # Medium EMA period
+  slow_ema: 50                  # Slow EMA period
+  
+  # RSI parameters
+  rsi_period: 14                # RSI calculation period
+  # rsi_overbought: 70            # RSI overbought threshold
+  rsi_overbought: 75            # RSI overbought threshold
+  # rsi_oversold: 30              # RSI oversold threshold
+  rsi_oversold: 25              # RSI oversold threshold
+  rsi_midline: 50               # RSI midline for trend confirmation
+  
+  # MACD parameters
+  macd_fast: 12                 # MACD fast period
+  macd_slow: 26                 # MACD slow period
+  macd_signal: 9                # MACD signal line period
+  
+  # Trade management
+  threshold_points: 2.0         # Points for signal confirmation
+  # target_r: 1.5                 # Target risk/reward ratio
+  target_r: 2.0                 # Target risk/reward ratio
+  stop_r: 0.75                  # Stop loss as R multiple
+  take_profit_ticks: 10         # Take profit in ticks
+  # stop_loss_ticks: 5            # Stop loss in ticks
+  stop_loss_ticks: 8            # Stop loss in ticks
+  
+  # Contract specifications
+  tick_size: 0.25               # MES tick size in points
+  
+  # Session filter
+  # session_start: "08:00"        # Session start time
+  session_start: "10:00"        # Session start time
+  session_end: "12:00"          # Session end time
