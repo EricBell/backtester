@@ -1,6 +1,6 @@
 # config.yaml - production-ready v1 defaults
 timezone: "America/New_York"
-commission_roundtrip: 1.75
+# commission_roundtrip: 1.74  # Moved to contract-specific settings
 slippage_points: 0.25
 # session_start: "08:00"
 # session_end: "12:00"
@@ -20,16 +20,19 @@ contracts:
     label: "Micro E-mini S&P 500"
     dollars_per_point: 5.0
     tick_size: 0.25
+    commission_roundtrip: 1.74
     notes: "Micro e-mini S&P"
   MNQ:
     label: "Micro E-mini Nasdaq-100"
     dollars_per_point: 2.0
     tick_size: 0.25
+    commission_roundtrip: 1.74
     notes: "Micro e-mini NASDAQ"
   ES:
     label: "E-mini S&P 500"
     dollars_per_point: 50.0
-    tick_size: 12.25
+    tick_size: 0.25
+    commission_roundtrip: 1.74
     notes: "E-mini S&P"
 
 orb:
@@ -46,7 +49,7 @@ orb:
   volume_lookback: 10           # Longer from 5 - more reliable volume filter
   take_profit_r: [2.2, 3.2]    # Higher from [1.0, 2.0] - better risk/reward
   stop_policy: "atr"            # Change from "structure" - more dynamic
-  atr_multiplier_stop: 1.25    # Wider from 1.0 - reduce stop-outs
+  atr_multiplier_stop: 1.2    # Wider from 1.0 - reduce stop-outs
   stop_fixed_points: 6.0        # Wider from 4.0 - fallback for noise
   round_stops_to_tick: true     # Keep  
 

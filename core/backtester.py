@@ -130,8 +130,10 @@ class Backtester:
         contracts_raw = get_config_int(config, "contracts", default=1)
         self.contracts = max(1, contracts_raw)
         self.slippage_points = float(config.get("slippage_points", 0.0))
-        self.commission_rt = float(config.get("commission_roundtrip", 0.0))
         self.contract_name = config.get("resolved_contract", "UNKNOWN")
+        # Use contract-specific commission, fallback to global if not found
+        self.commission_rt = float(config.get("contract_meta", {}).get("commission_roundtrip", 
+                                             config.get("commission_roundtrip", 0.0)))
         
         # Rounding settings
         self.round_to_tick_enabled = config.get("orb", {}).get("round_stops_to_tick", False)
@@ -261,7 +263,7 @@ class Backtester:
             trade = self._create_trade_record(
                 self.trade_id_seq, entry_timestamp, exit_timestamp, "LONG",
                 entry_price, exit_price, exit_contracts, gross_pnl,
-                0.0, slippage_cost, stop_price, "ORB"  # No commission on partial exit
+                self.commission_rt, slippage_cost, stop_price, "ORB"  # Commission on all exits
             )
             trades.append(trade)
             self.trade_id_seq += 1
@@ -329,7 +331,7 @@ class Backtester:
             trade = self._create_trade_record(
                 self.trade_id_seq, entry_timestamp, exit_timestamp, "SHORT",
                 entry_price, exit_price, exit_contracts, gross_pnl,
-                0.0, slippage_cost, stop_price, "ORB"  # No commission on partial exit
+                self.commission_rt, slippage_cost, stop_price, "ORB"  # Commission on all exits
             )
             trades.append(trade)
             self.trade_id_seq += 1
