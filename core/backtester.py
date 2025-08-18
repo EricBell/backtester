@@ -501,13 +501,38 @@ class Backtester:
         losses = sum(1 for t in self.trades if t.net_pnl <= 0)
         win_rate = wins / total if total > 0 else 0.0
         
+        # Extract strategy parameters from config for run identification
+        strategy_name = self.strategy.__class__.__name__
+        strategy_params = {}
+        
+        # Get strategy-specific parameters
+        if hasattr(self.strategy, 'params') and self.strategy.params:
+            strategy_params = dict(self.strategy.params)
+        
+        # Extract key run parameters
+        run_params = {
+            "strategy": strategy_name,
+            "contract": self.contract_name,
+            "contracts": self.contracts,
+            "dollars_per_point": self.dollars_per_point,
+            "commission_roundtrip": self.commission_rt,
+            "slippage_points": self.slippage_points,
+            "session_start": self.config.get("session_start"),
+            "session_end": self.config.get("session_end"),
+            "resample_minutes": self.config.get("resample_minutes"),
+        }
+        
         return {
-            "total_trades": total,
-            "gross_pnl": gross_pnl,
-            "net_pnl": net_pnl,
-            "wins": wins,
-            "losses": losses,
-            "win_rate": round(win_rate, 4),
+            "run_parameters": run_params,
+            "strategy_parameters": strategy_params,
+            "performance": {
+                "total_trades": total,
+                "gross_pnl": gross_pnl,
+                "net_pnl": net_pnl,
+                "wins": wins,
+                "losses": losses,
+                "win_rate": round(win_rate, 4),
+            }
         }
 
     def save_results(self) -> None:

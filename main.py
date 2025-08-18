@@ -155,9 +155,10 @@ def main(
 
     # Compute metrics and print compact run summary (trades & net P&L)
     metrics = bt.compute_metrics()
-    total_trades = metrics.get("total_trades", 0)
-    net_pnl = metrics.get("net_pnl", 0.0)
-    gross_pnl = metrics.get("gross_pnl", 0.0)
+    performance = metrics.get("performance", {})
+    total_trades = performance.get("total_trades", 0)
+    net_pnl = performance.get("net_pnl", 0.0)
+    gross_pnl = performance.get("gross_pnl", 0.0)
     if total_trades == 0:
         typer.echo(f"Trades taken: 0 — no trades generated. No outputs to inspect.")
     else:
