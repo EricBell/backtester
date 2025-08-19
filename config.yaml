@@ -19,7 +19,7 @@ contracts:
     dollars_per_point: 5.0
     tick_size: 0.25
     commission_roundtrip: 1.74
-    position_contracts: 10
+    position_contracts: 2
     notes: "Micro e-mini S&P"
   MNQ:
     label: "Micro E-mini Nasdaq-100"
@@ -120,33 +120,33 @@ ema8_21:
   
   # RSI settings
   rsi_period: 14                # RSI calculation period
-  rsi_overbought: 60            # RSI overbought threshold
-  rsi_oversold: 40              # RSI oversold threshold
+  rsi_overbought: 55            # RSI overbought threshold (tighter)
+  rsi_oversold: 45              # RSI oversold threshold (tighter)
   
   # Trend strength filter
   # trend_strength_threshold: 0.8 # Minimum trend strength percentage
-  trend_strength_threshold: 0.001 # Minimum trend strength percentage
+  trend_strength_threshold: 0.01  # Minimum trend strength percentage
   
   # Exit rules - take profit levels as percentages  
-  take_profit_levels: [6.0, 10.0] # Two take profit levels (% of initial risk)
-  take_profit_sizes: [70, 30]     # Position sizes for each level (%)
-  stop_loss_percentage: 2.5       # Stop loss as percentage of entry price
+  take_profit_levels: [2.0, 3.0]  # Two take profit levels (% of initial risk)
+  take_profit_sizes: [80, 20]     # Position sizes for each level (%)
+  stop_loss_percentage: 0.15      # Stop loss as percentage of entry price
   
   # Trailing stop
   trailing_stop_percentage: 1.8   # Trailing stop percentage
   trailing_activation_rr: 1.0     # Risk/reward ratio to activate trailing
   
   # Risk management
-  account_size: 25000             # Account size for position sizing
-  risk_per_trade_percentage: 1.0  # Risk per trade as % of account
-  max_daily_loss_percentage: 5.0  # Maximum daily loss percentage
-  max_open_positions: 2           # Maximum concurrent positions
+  account_size: 2000              # Account size for position sizing
+  risk_per_trade_percentage: 2.0  # Risk per trade as % of account
+  max_daily_loss_percentage: 6.0  # Maximum daily loss percentage
+  max_open_positions: 1           # Maximum concurrent positions
   
   # Position sizing
-  default_position_size: 10       # Default contract size
-  max_position_size: 20          # Maximum contracts per trade
+  default_position_size: 2        # Default contract size
+  max_position_size: 3           # Maximum contracts per trade
   
   # Execution
-  commission_per_contract: 2.0    # Commission per contract
+  commission_per_contract: 1.74    # Commission per contract
   point_value: 5.0               # Point value for MES
   slippage_points: 1.0           # Slippage in points
