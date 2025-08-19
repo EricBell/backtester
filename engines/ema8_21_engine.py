@@ -266,9 +266,9 @@ class EMA821Strategy:
         if len(day_df) < 2:  # Need at least 2 bars to check crossover
             return signals
         
-        # Track signals per day (one per direction)
-        long_signal_taken = False
-        short_signal_taken = False
+        # Track signals per day (allow multiple per direction)
+        signals_taken = 0
+        max_signals_per_day = 4
         
         # Process each bar starting from the second one
         for i in range(1, len(day_df)):
@@ -285,19 +285,13 @@ class EMA821Strategy:
             entry_conditions = self._check_entry_conditions(current_row, prev_row)
             
             # Generate signal if conditions met
-            if entry_conditions["signal_valid"]:
-                if entry_conditions["signal_type"] == "LONG" and not long_signal_taken:
-                    signal = self._create_signal(timestamp, current_row, entry_conditions, date)
-                    signals.append(signal)
-                    long_signal_taken = True
-                
-                elif entry_conditions["signal_type"] == "SHORT" and not short_signal_taken:
-                    signal = self._create_signal(timestamp, current_row, entry_conditions, date)
-                    signals.append(signal)
-                    short_signal_taken = True
+            if entry_conditions["signal_valid"] and signals_taken < max_signals_per_day:
+                signal = self._create_signal(timestamp, current_row, entry_conditions, date)
+                signals.append(signal)
+                signals_taken += 1
             
-            # Break if both directions have signals
-            if long_signal_taken and short_signal_taken:
+            # Break if max signals reached
+            if signals_taken >= max_signals_per_day:
                 break
         
         return signals

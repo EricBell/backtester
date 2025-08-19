@@ -120,16 +120,16 @@ ema8_21:
   
   # RSI settings
   rsi_period: 14                # RSI calculation period
-  rsi_overbought: 55            # RSI overbought threshold (tighter)
-  rsi_oversold: 45              # RSI oversold threshold (tighter)
+  rsi_overbought: 65            # RSI overbought threshold
+  rsi_oversold: 35              # RSI oversold threshold
   
   # Trend strength filter
   # trend_strength_threshold: 0.8 # Minimum trend strength percentage
-  trend_strength_threshold: 0.01  # Minimum trend strength percentage
+  trend_strength_threshold: 0.005 # Minimum trend strength percentage
   
   # Exit rules - take profit levels as percentages  
-  take_profit_levels: [2.0, 3.0]  # Two take profit levels (% of initial risk)
-  take_profit_sizes: [80, 20]     # Position sizes for each level (%)
+  take_profit_levels: [1.5, 2.5]  # Two take profit levels (% of initial risk)
+  take_profit_sizes: [70, 30]     # Position sizes for each level (%)
   stop_loss_percentage: 0.15      # Stop loss as percentage of entry price
   
   # Trailing stop
