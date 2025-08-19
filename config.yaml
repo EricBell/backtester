@@ -4,7 +4,7 @@ timezone: "America/New_York"
 slippage_points: 0.0
 session_start: "08:00"
 session_end: "12:00"
-resample_minutes: 3
+resample_minutes: 15
 max_daily_loss: 200.0
 max_trades_per_day: 6
 min_trades_for_stats_warning: 100
@@ -19,7 +19,7 @@ contracts:
     dollars_per_point: 5.0
     tick_size: 0.25
     commission_roundtrip: 1.74
-    position_contracts: 1
+    position_contracts: 10
     notes: "Micro e-mini S&P"
   MNQ:
     label: "Micro E-mini Nasdaq-100"
@@ -104,3 +104,49 @@ scalping:
   # Session filter
   session_start: "10:00"        # Session start time
   session_end: "12:00"          # Session end time
+
+ema8_21:
+  # Ultra-Selective 8/21 EMA Strategy for MES Futures
+  # Based on 30-minute charts for day trading
+  
+  # Trading session (excludes first 15 minutes)
+  session_start: "09:45"        # Start after market open
+  session_end: "14:30"          # End before market close
+  timezone: "America/New_York"
+  
+  # EMA indicators
+  fast_ema_period: 8            # Fast EMA period
+  slow_ema_period: 21           # Slow EMA period
+  
+  # RSI settings
+  rsi_period: 14                # RSI calculation period
+  rsi_overbought: 60            # RSI overbought threshold
+  rsi_oversold: 40              # RSI oversold threshold
+  
+  # Trend strength filter
+  # trend_strength_threshold: 0.8 # Minimum trend strength percentage
+  trend_strength_threshold: 0.001 # Minimum trend strength percentage
+  
+  # Exit rules - take profit levels as percentages  
+  take_profit_levels: [6.0, 10.0] # Two take profit levels (% of initial risk)
+  take_profit_sizes: [70, 30]     # Position sizes for each level (%)
+  stop_loss_percentage: 2.5       # Stop loss as percentage of entry price
+  
+  # Trailing stop
+  trailing_stop_percentage: 1.8   # Trailing stop percentage
+  trailing_activation_rr: 1.0     # Risk/reward ratio to activate trailing
+  
+  # Risk management
+  account_size: 25000             # Account size for position sizing
+  risk_per_trade_percentage: 1.0  # Risk per trade as % of account
+  max_daily_loss_percentage: 5.0  # Maximum daily loss percentage
+  max_open_positions: 2           # Maximum concurrent positions
+  
+  # Position sizing
+  default_position_size: 10       # Default contract size
+  max_position_size: 20          # Maximum contracts per trade
+  
+  # Execution
+  commission_per_contract: 2.0    # Commission per contract
+  point_value: 5.0               # Point value for MES
+  slippage_points: 1.0           # Slippage in points

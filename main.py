@@ -23,7 +23,7 @@ import typer
 from typing import Optional
 from core import utils
 from core.backtester import Backtester
-from engines import orb_engine, pullback_engine, vwap_engine, scalping_engine
+from engines import orb_engine, pullback_engine, vwap_engine, scalping_engine, ema8_21_engine
 
 app = typer.Typer(add_completion=False)
 
@@ -31,7 +31,7 @@ app = typer.Typer(add_completion=False)
 @app.command()
 def main(
     data: str = typer.Argument(..., help="Path to CSV file (date,time,open,high,low,close,volume)"),
-    engine: str = typer.Option(..., "--engine", "-e", help="Which engine to run: orb|pullback|vwap|scalping"),
+    engine: str = typer.Option(..., "--engine", "-e", help="Which engine to run: orb|pullback|vwap|scalping|ema8-21"),
     contract: str = typer.Option(..., "--contract", help="Contract symbol (required)"),
     config: str = typer.Option("config.yaml", "--config", help="Path to YAML config"),
     start: Optional[str] = typer.Option(None, help="YYYY-MM-DD (optional; derived from data if omitted)"),
@@ -145,8 +145,10 @@ def main(
         strategy = vwap_engine.VWAPFadeStrategy(merged.get("vwap", {}))
     elif engine == "scalping":
         strategy = scalping_engine.MESScalpingStrategy(merged.get("scalping", {}))
+    elif engine == "ema8-21":
+        strategy = ema8_21_engine.EMA821Strategy(merged.get("ema8_21", {}))
     else:
-        typer.secho(f"Unknown engine: {engine}. Supported: orb, pullback, vwap, scalping", fg=typer.colors.RED)
+        typer.secho(f"Unknown engine: {engine}. Supported: orb, pullback, vwap, scalping, ema8-21", fg=typer.colors.RED)
         raise typer.Abort()
 
     # Initialize backtester (skeleton)

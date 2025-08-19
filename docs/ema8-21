@@ -1,0 +1,126 @@
+{
+  "strategy_name": "Ultra-Selective 8/21 EMA Strategy for MES Futures",
+  "version": "1.0",
+  "description": "A highly selective strategy using 8/21 EMA crossovers with strong trend filters on 30-minute charts for MES futures day trading",
+  "asset_class": "futures",
+  "primary_symbol": "MES",
+  "timeframe": "30m",
+  "trading_session": {
+    "start_time": "09:30",
+    "end_time": "14:30",
+    "timezone": "America/New_York",
+    "exclude_first_minutes": 15
+  },
+  "indicators": {
+    "fast_ema": {
+      "type": "EMA",
+      "period": 8,
+      "source": "close"
+    },
+    "slow_ema": {
+      "type": "EMA",
+      "period": 21,
+      "source": "close"
+    },
+    "rsi": {
+      "type": "RSI",
+      "period": 14,
+      "source": "close",
+      "overbought": 60,
+      "oversold": 40
+    },
+    "trend_strength": {
+      "type": "custom",
+      "calculation": "abs(fast_ema - slow_ema) / close * 100",
+      "threshold": 0.8
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "conditions": [
+        "fast_ema crosses above slow_ema",
+        "trend_strength > 0.8",
+        "rsi > 40",
+        "close > fast_ema",
+        "close > slow_ema",
+        "within trading hours"
+      ],
+      "logic": "AND"
+    },
+    "short": {
+      "conditions": [
+        "fast_ema crosses below slow_ema",
+        "trend_strength > 0.8",
+        "rsi < 60",
+        "close < fast_ema",
+        "close < slow_ema",
+        "within trading hours"
+      ],
+      "logic": "AND"
+    }
+  },
+  "exit_rules": {
+    "take_profit": [
+      {
+        "percentage": 4.0,
+        "position_size_percentage": 50
+      },
+      {
+        "percentage": 6.0,
+        "position_size_percentage": 50
+      }
+    ],
+    "stop_loss": {
+      "percentage": 2.5,
+      "position_size_percentage": 100
+    },
+    "trailing_stop": {
+      "activation": {
+        "type": "risk_reward_ratio",
+        "value": 1.0
+      },
+      "percentage": 1.8
+    },
+    "time_based_exit": {
+      "time": "14:30",
+      "timezone": "America/New_York"
+    },
+    "signal_reversal_exit": true
+  },
+  "risk_management": {
+    "account_size": 2000,
+    "risk_per_trade_percentage": 2.5,
+    "max_daily_loss_percentage": 5.0,
+    "max_weekly_loss_percentage": 10.0,
+    "max_drawdown_percentage": 15.0,
+    "max_open_positions": 2,
+    "consecutive_loss_limit": 3
+  },
+  "position_sizing": {
+    "default_size": 1,
+    "position_type": "contracts",
+    "max_position_size": 2,
+    "scaling": {
+      "enabled": true,
+      "min_favorable_move_percentage": 2.0,
+      "scale_in_size": 1
+    }
+  },
+  "filters": {
+    "avoid_economic_events": true,
+    "min_volume_threshold": "average",
+    "avoid_choppy_market": true,
+    "max_spreads": 5
+  },
+  "execution": {
+    "entry_order_type": "limit",
+    "entry_order_timeout_seconds": 120,
+    "exit_order_type": "market",
+    "slippage_points": 1
+  },
+  "backtest_settings": {
+    "commission_per_contract": 2.0,
+    "point_value": 5.0,
+    "slippage_simulation": true
+  }
+}
