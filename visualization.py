@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from core.utils import load_csv_parse_datetime
 from core.indicators import ema, vwap, atr, rsi
+from version_manager import get_version_string
 
 def create_html_report(backtest_results_dir, output_file=None, bar_data_path=None):
     """
@@ -224,6 +225,12 @@ def create_dashboard(trades_df, equity_df, metrics):
         row=3, col=2
     )
     
+    # Get current version
+    try:
+        app_version = get_version_string()
+    except Exception:
+        app_version = "v1.0.0"  # Fallback version
+    
     # Update layout
     fig.update_layout(
         title="MES Futures Trifecta Strategy Backtest Results",
@@ -237,7 +244,21 @@ def create_dashboard(trades_df, equity_df, metrics):
             y=1.02,
             xanchor="right",
             x=1
-        )
+        ),
+        # Add version annotation at bottom
+        annotations=[
+            dict(
+                text=f"Backtester {app_version}",
+                showarrow=False,
+                xref="paper", yref="paper",
+                x=0.99, y=0.01,
+                xanchor='right', yanchor='bottom',
+                font=dict(size=10, color='rgba(255,255,255,0.6)'),
+                bgcolor='rgba(0,0,0,0.3)',
+                bordercolor='rgba(255,255,255,0.2)',
+                borderwidth=1
+            )
+        ]
     )
     
     return fig
@@ -245,7 +266,7 @@ def create_dashboard(trades_df, equity_df, metrics):
 def create_enhanced_dashboard(trades_df, equity_df, metrics, bars_df=None, config=None):
     """Create an enhanced dashboard with trading chart, equity curve, and metrics"""
     if bars_df is not None and not bars_df.empty:
-        # Enhanced layout with trading chart
+        # Enhanced layout with trading chart (no shared_xaxes here - we'll link manually)
         fig = make_subplots(
             rows=5, cols=2,
             specs=[
@@ -275,6 +296,12 @@ def create_enhanced_dashboard(trades_df, equity_df, metrics, bars_df=None, confi
         # Add pie and table
         add_pie_and_metrics_table(fig, trades_df, metrics, row=5)
         
+        # Get current version
+        try:
+            app_version = get_version_string()
+        except Exception:
+            app_version = "v1.0.0"  # Fallback version
+        
         # Enhanced layout for trading dashboard with better navigation
         fig.update_layout(
             title="Enhanced Trading Strategy Analysis",
@@ -291,7 +318,21 @@ def create_enhanced_dashboard(trades_df, equity_df, metrics, bars_df=None, confi
             ),
             # Enhanced chart interactions
             dragmode='zoom',
-            selectdirection='d'
+            selectdirection='d',
+            # Add version annotation at bottom
+            annotations=[
+                dict(
+                    text=f"Backtester {app_version}",
+                    showarrow=False,
+                    xref="paper", yref="paper",
+                    x=0.99, y=0.01,
+                    xanchor='right', yanchor='bottom',
+                    font=dict(size=10, color='rgba(255,255,255,0.6)'),
+                    bgcolor='rgba(0,0,0,0.3)',
+                    bordercolor='rgba(255,255,255,0.2)',
+                    borderwidth=1
+                )
+            ]
         )
         
         # Add enhanced navigation and scaling for main price chart
@@ -361,6 +402,14 @@ def create_enhanced_dashboard(trades_df, equity_df, metrics, bars_df=None, confi
                 gridcolor='rgba(128,128,128,0.3)',
                 row=4, col=1
             )
+            
+            # CRITICAL: Manually link X-axes for chart synchronization
+            # Link volume chart (row 2) to main price chart (row 1)
+            fig.update_xaxes(matches='x', row=2, col=1)
+            # Link indicators chart (row 3) to main price chart (row 1) 
+            fig.update_xaxes(matches='x', row=3, col=1)
+            # Link equity curve (row 4) to main price chart (row 1)
+            fig.update_xaxes(matches='x', row=4, col=1)
     else:
         # Fallback to original dashboard if no bars data
         fig = create_dashboard(trades_df, equity_df, metrics)
