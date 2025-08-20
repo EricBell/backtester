@@ -1,0 +1,45 @@
+# Example config.yaml - edit values to your environment.
+timezone: "America/New_York"
+commission_roundtrip: 1.75
+slippage_points: 0.25
+session_start: "08:00"
+session_end: "12:00"
+resample_minutes: 3
+max_daily_loss: 200.0
+max_trades_per_day: 6
+meta_file_support_enabled: false
+require_contract: true
+
+contracts:
+  MES:
+    label: "Micro E-mini S&P 500"
+    dollars_per_point: 5.0
+    tick_size: 1.25
+    notes: "Micro e-mini S&P"
+  MNQ:
+    label: "Micro E-mini Nasdaq-100"
+    dollars_per_point: 2.0
+    tick_size: 0.25
+    notes: "Micro e-mini NASDAQ"
+  ES:
+    label: "E-mini S&P 500"
+    dollars_per_point: 50.0
+    tick_size: 0.25
+    notes: "E-mini S&P"
+
+# Per-engine defaults (optional)
+orb:
+  open_range_minutes: 15
+  require_volume_confirmation: true
+  take_profit_r: [1.0, 2.0]
+  stop_policy: "structure"
+
+pullback:
+  ema_fast: 9
+  ema_slow: 20
+  pullback_bars: 3
+
+vwap:
+  threshold_points: 2.0
+  target_r: 1.0
+  stop_r: 0.75

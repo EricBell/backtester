@@ -1,6 +1,6 @@
 {
-  "project": "MES_intraday_backtester",
-  "snapshot_version": "v0.4",
+  "project": "backtester",
+  "snapshot_version": "v0.5",
   "snapshot_time_et": "2025-08-13T16:45:00-04:00",
   "user": {
     "name": "Eric Bell",
@@ -14,7 +14,7 @@
       "daily_profit_target": 100,
       "daily_risk_cap": 200,
       "session_window": "08:00-12:00 ET",
-      "preferred_chart": "3-minute (1-min for entries, 10-min for bias)"
+      "preferred_chart": "3-minute"
     }
   },
   "requirements": {
