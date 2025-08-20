@@ -59,6 +59,20 @@ pullback:
   tick_size: 0.25
   session_start: "08:00"
   session_end: "12:00"
+  
+  # Stop Method Toggles
+  use_atr_stops: false             # Enable/disable ATR-based stops
+  use_fixed_stops: false          # Enable/disable fixed point stops  
+  use_sr_stops: true              # Enable/disable support/resistance stops
+  
+  # Support/Resistance Stop Settings
+  sr_lookback_bars: 20            # How far back to scan for S/R levels
+  sr_min_touches: 2               # Minimum touches to confirm S/R level
+  sr_buffer_points: 1             # Points beyond S/R for stop placement
+  round_number_intervals: [25, 50, 100]  # Round number levels
+  
+  # Stop Selection Method
+  stop_selection: "tightest"      # Options: "tightest", "loosest", "average"
 
 vwap:
   # VWAP Fade Strategy parameters

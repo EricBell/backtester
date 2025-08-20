@@ -46,6 +46,20 @@ class PullbackStrategy:
         # Session filter
         self.session_start = self.params.get("session_start", "08:00")
         self.session_end = self.params.get("session_end", "12:00")
+        
+        # Stop Method Toggles
+        self.use_atr_stops = self.params.get("use_atr_stops", True)
+        self.use_fixed_stops = self.params.get("use_fixed_stops", True)
+        self.use_sr_stops = self.params.get("use_sr_stops", False)
+        
+        # Support/Resistance Stop Settings
+        self.sr_lookback_bars = self.params.get("sr_lookback_bars", 20)
+        self.sr_min_touches = self.params.get("sr_min_touches", 2)
+        self.sr_buffer_points = self.params.get("sr_buffer_points", 1)
+        self.round_number_intervals = self.params.get("round_number_intervals", [25, 50, 100])
+        
+        # Stop Selection Method
+        self.stop_selection = self.params.get("stop_selection", "tightest")
 
     def in_session(self, dt) -> bool:
         """Check if a given datetime is within the trading session"""
@@ -67,6 +81,185 @@ class PullbackStrategy:
             return np.floor(price / self.tick_size) * self.tick_size
         else:
             return round(price / self.tick_size) * self.tick_size
+    
+    def _calculate_atr_stop(self, entry_price: float, atr: float, side: str) -> float:
+        """Calculate ATR-based stop loss"""
+        if pd.isna(atr) or atr <= 0:
+            return None
+        
+        stop_distance = atr * self.atr_multiplier_stop
+        
+        if side == "LONG":
+            return entry_price - stop_distance
+        else:  # SHORT
+            return entry_price + stop_distance
+    
+    def _calculate_fixed_stop(self, entry_price: float, side: str) -> float:
+        """Calculate fixed point stop loss"""
+        if side == "LONG":
+            return entry_price - self.stop_fixed_points
+        else:  # SHORT
+            return entry_price + self.stop_fixed_points
+    
+    def _find_support_resistance_levels(self, df: pd.DataFrame, current_idx: int) -> list:
+        """Find nearby support and resistance levels"""
+        levels = []
+        
+        # Look back from current position
+        start_idx = max(0, current_idx - self.sr_lookback_bars)
+        lookback_data = df.iloc[start_idx:current_idx + 1]
+        
+        if len(lookback_data) < 3:
+            return levels
+        
+        # Find swing highs and lows
+        for i in range(1, len(lookback_data) - 1):
+            current_bar = lookback_data.iloc[i]
+            prev_bar = lookback_data.iloc[i - 1]
+            next_bar = lookback_data.iloc[i + 1]
+            
+            # Swing high (resistance)
+            if (current_bar['high'] > prev_bar['high'] and 
+                current_bar['high'] > next_bar['high']):
+                levels.append({
+                    'price': current_bar['high'],
+                    'type': 'resistance',
+                    'strength': 1
+                })
+            
+            # Swing low (support)
+            if (current_bar['low'] < prev_bar['low'] and 
+                current_bar['low'] < next_bar['low']):
+                levels.append({
+                    'price': current_bar['low'],
+                    'type': 'support',
+                    'strength': 1
+                })
+        
+        # Add round number levels
+        current_price = df.iloc[current_idx]['close']
+        
+        for interval in self.round_number_intervals:
+            # Find nearest round numbers above and below current price
+            lower_round = (int(current_price / interval)) * interval
+            upper_round = lower_round + interval
+            
+            # Check if these levels are within reasonable range
+            price_range = current_price * 0.05  # 5% range
+            
+            if abs(lower_round - current_price) <= price_range:
+                levels.append({
+                    'price': lower_round,
+                    'type': 'support' if lower_round < current_price else 'resistance',
+                    'strength': 2  # Round numbers get higher strength
+                })
+            
+            if abs(upper_round - current_price) <= price_range:
+                levels.append({
+                    'price': upper_round,
+                    'type': 'support' if upper_round < current_price else 'resistance',
+                    'strength': 2
+                })
+        
+        # Remove duplicates and sort by distance from current price
+        unique_levels = []
+        for level in levels:
+            # Check if this price level already exists (within 1 tick)
+            duplicate = False
+            for existing in unique_levels:
+                if abs(existing['price'] - level['price']) <= self.tick_size:
+                    # Keep the one with higher strength
+                    if level['strength'] > existing['strength']:
+                        unique_levels.remove(existing)
+                    else:
+                        duplicate = True
+                    break
+            
+            if not duplicate:
+                unique_levels.append(level)
+        
+        # Sort by distance from current price
+        unique_levels.sort(key=lambda x: abs(x['price'] - current_price))
+        
+        return unique_levels
+    
+    def _calculate_sr_stop(self, entry_price: float, df: pd.DataFrame, current_idx: int, side: str) -> float:
+        """Calculate support/resistance based stop loss"""
+        levels = self._find_support_resistance_levels(df, current_idx)
+        
+        if not levels:
+            return None
+        
+        # Find the nearest relevant level
+        relevant_levels = []
+        
+        for level in levels:
+            if side == "LONG":
+                # For long trades, look for support levels below entry
+                if level['type'] == 'support' and level['price'] < entry_price:
+                    relevant_levels.append(level)
+            else:  # SHORT
+                # For short trades, look for resistance levels above entry
+                if level['type'] == 'resistance' and level['price'] > entry_price:
+                    relevant_levels.append(level)
+        
+        if not relevant_levels:
+            return None
+        
+        # Use the nearest relevant level
+        nearest_level = relevant_levels[0]
+        
+        if side == "LONG":
+            # Stop just below support
+            return nearest_level['price'] - self.sr_buffer_points
+        else:  # SHORT
+            # Stop just above resistance
+            return nearest_level['price'] + self.sr_buffer_points
+    
+    def calculate_stop_price(self, entry_price: float, atr: float, df: pd.DataFrame, current_idx: int, side: str) -> float:
+        """Calculate stop price using the selected method(s)"""
+        stops = []
+        
+        # Calculate each type of stop if enabled
+        if self.use_atr_stops:
+            atr_stop = self._calculate_atr_stop(entry_price, atr, side)
+            if atr_stop is not None:
+                stops.append(('atr', atr_stop))
+        
+        if self.use_fixed_stops:
+            fixed_stop = self._calculate_fixed_stop(entry_price, side)
+            stops.append(('fixed', fixed_stop))
+        
+        if self.use_sr_stops:
+            sr_stop = self._calculate_sr_stop(entry_price, df, current_idx, side)
+            if sr_stop is not None:
+                stops.append(('sr', sr_stop))
+        
+        if not stops:
+            # Fallback to fixed stop if no methods enabled
+            return self._calculate_fixed_stop(entry_price, side)
+        
+        # Select stop based on configuration
+        stop_prices = [stop[1] for stop in stops]
+        
+        if self.stop_selection == "tightest":
+            if side == "LONG":
+                # Tightest stop for long = highest stop price (closest to entry)
+                selected_stop = max(stop_prices)
+            else:  # SHORT
+                # Tightest stop for short = lowest stop price (closest to entry)
+                selected_stop = min(stop_prices)
+        elif self.stop_selection == "loosest":
+            if side == "LONG":
+                # Loosest stop for long = lowest stop price (furthest from entry)
+                selected_stop = min(stop_prices)
+            else:  # SHORT
+                # Loosest stop for short = highest stop price (furthest from entry)
+                selected_stop = max(stop_prices)
+        else:  # "average"
+            selected_stop = sum(stop_prices) / len(stop_prices)
+        
+        return selected_stop
 
     def generate_signals(self, df: pd.DataFrame) -> pd.DataFrame:
         """
@@ -168,13 +361,10 @@ class PullbackStrategy:
                 # Entry price would be next bar's open
                 entry_price = next_bar['open']
                 
-                # Calculate stop loss
-                if not pd.isna(current['atr']) and current['atr'] > 0:
-                    stop_distance = current['atr'] * self.atr_multiplier_stop
-                else:
-                    stop_distance = self.stop_fixed_points
-                
-                stop_price = entry_price - stop_distance
+                # Calculate stop loss using flexible method
+                stop_price = self.calculate_stop_price(
+                    entry_price, current['atr'], df, i, "LONG"
+                )
                 stop_price = self.round_to_tick(stop_price, "down")
                 
                 # Calculate target
@@ -194,7 +384,7 @@ class PullbackStrategy:
                         "fast_ema": current[f'ema_{self.ema_fast}'],
                         "slow_ema": current[f'ema_{self.ema_slow}'],
                         "atr": current['atr'],
-                        "stop_distance": stop_distance,
+                        "stop_distance": risk,  # Distance from entry to stop
                         "risk_points": risk,
                         "target_points": target_price - entry_price
                     }
@@ -205,13 +395,10 @@ class PullbackStrategy:
                 # Entry price would be next bar's open
                 entry_price = next_bar['open']
                 
-                # Calculate stop loss
-                if not pd.isna(current['atr']) and current['atr'] > 0:
-                    stop_distance = current['atr'] * self.atr_multiplier_stop
-                else:
-                    stop_distance = self.stop_fixed_points
-                
-                stop_price = entry_price + stop_distance
+                # Calculate stop loss using flexible method
+                stop_price = self.calculate_stop_price(
+                    entry_price, current['atr'], df, i, "SHORT"
+                )
                 stop_price = self.round_to_tick(stop_price, "up")
                 
                 # Calculate target
@@ -231,7 +418,7 @@ class PullbackStrategy:
                         "fast_ema": current[f'ema_{self.ema_fast}'],
                         "slow_ema": current[f'ema_{self.ema_slow}'],
                         "atr": current['atr'],
-                        "stop_distance": stop_distance,
+                        "stop_distance": risk,  # Distance from entry to stop
                         "risk_points": risk,
                         "target_points": entry_price - target_price
                     }

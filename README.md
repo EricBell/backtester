@@ -311,27 +311,43 @@ This manual approach lets you validate the strategy's real-world performance whi
 
 **Exit Strategy:**
 - **Target**: 3.5x initial risk (3.5R target)
-- **Stop Loss**: 2.2x ATR or 7 points (whichever is larger)
+- **Stop Loss**: Use the TIGHTEST of these three options:
+  1. **2.2x ATR** (volatility-based)
+  2. **7 points** (minimum fixed stop)
+  3. **1 point below nearest support (LONG) / 1 point above nearest resistance (SHORT)**
 
-**Risk Calculation Example:**
-- Entry: 6000
-- ATR: 12 points
-- Stop: 6000 - (12 × 2.2) = 5974 points (26 points = $130 risk per contract)
-- Target: 6000 + (26 × 3.5) = 6091 points (91 points = $455 profit per contract)
+**Risk Calculation Example (with Support/Resistance Stop):**
+- Entry: 6000 (LONG)
+- ATR: 12 points → ATR stop = 5974 (26 points)
+- Fixed stop = 5993 (7 points)
+- **Support level = 5997 → S/R stop = 5996 (4 points)**
+- **Chosen stop: 5996** (tightest option)
+- Risk: 4 points = $20 per contract ($40 total for 2 contracts)
+- Target: 6000 + (4 × 3.5) = 6014 points (14 points = $70 profit per contract)
+
+**Better Risk/Reward**: $140 profit potential vs $40 risk = 3.5:1 ratio maintained
 
 #### Manual Testing Process
 
 **Pre-Market Preparation:**
 1. Check EMA alignment on daily/hourly charts for bias
-2. Note previous day's high/low levels
-3. Calculate ATR for stop sizing
+2. **Mark key support/resistance levels:**
+   - Previous day's high/low
+   - Overnight high/low
+   - Round numbers (6000, 6050, 6100, etc.)
+   - Previous swing highs/lows on 15min chart
+3. Calculate ATR for backup stop sizing
 
 **During Session (8:00 AM - 12:00 PM):**
 1. Watch for EMA 13/30 alignment (trend bias)
 2. Identify pullbacks to EMA 13
 3. Wait for trend resumption signal  
-4. Enter with 2 contracts when all conditions met
-5. Set stops and targets immediately
+4. **Before entry, check for nearby support/resistance:**
+   - LONG: Look for support below entry (recent swing low, round number, etc.)
+   - SHORT: Look for resistance above entry (recent swing high, round number, etc.)
+5. Enter with 2 contracts when all conditions met
+6. **Set stop using tightest option:** ATR stop vs Fixed stop vs S/R stop
+7. Set target at 3.5x risk from chosen stop
 
 **End of Day:**
 1. Record all trades and missed signals
