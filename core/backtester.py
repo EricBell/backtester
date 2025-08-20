@@ -587,3 +587,121 @@ class Backtester:
         summary = self.compute_metrics()
         with open(summary_file, "w") as f:
             json.dump(summary, f, default=str, indent=2)
+        
+        # Save equity curve for visualization
+        self._save_equity_curve()
+        
+        # Save metrics in visualization format
+        self._save_metrics_for_visualization(summary)
+    
+    def _save_equity_curve(self) -> None:
+        """Generate and save equity curve CSV for visualization."""
+        equity_file = self.outdir / "equity_curve.csv"
+        
+        if not self.trades:
+            # Create empty equity curve
+            with open(equity_file, "w") as f:
+                f.write("timestamp,equity,position,trade_pl\n")
+            return
+        
+        # Generate equity curve from trades
+        equity_data = []
+        running_equity = 0.0
+        current_position = 0
+        
+        # Sort trades by entry time
+        sorted_trades = sorted(self.trades, key=lambda t: t.entry_timestamp)
+        
+        for trade in sorted_trades:
+            # Entry point
+            equity_data.append({
+                'timestamp': trade.entry_timestamp,
+                'equity': running_equity,
+                'position': trade.contracts if trade.side == "LONG" else -trade.contracts,
+                'trade_pl': 0.0
+            })
+            
+            current_position = trade.contracts if trade.side == "LONG" else -trade.contracts
+            
+            # Exit point
+            running_equity += trade.net_pnl
+            equity_data.append({
+                'timestamp': trade.exit_timestamp,
+                'equity': running_equity,
+                'position': 0,  # Position closed
+                'trade_pl': trade.net_pnl
+            })
+        
+        # Write to CSV
+        import csv
+        with open(equity_file, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["timestamp", "equity", "position", "trade_pl"])
+            
+            for row in equity_data:
+                writer.writerow([
+                    row['timestamp'].isoformat(),
+                    row['equity'],
+                    row['position'], 
+                    row['trade_pl']
+                ])
+    
+    def _save_metrics_for_visualization(self, summary: dict) -> None:
+        """Convert summary metrics to visualization format."""
+        metrics_file = self.outdir / "metrics.json"
+        
+        performance = summary.get("performance", {})
+        
+        # Calculate additional metrics needed by visualization
+        wins = sum(1 for t in self.trades if t.net_pnl > 0)
+        losses = sum(1 for t in self.trades if t.net_pnl <= 0)
+        
+        if wins > 0:
+            avg_win = sum(t.net_pnl for t in self.trades if t.net_pnl > 0) / wins
+        else:
+            avg_win = 0.0
+            
+        if losses > 0:
+            avg_loss = sum(t.net_pnl for t in self.trades if t.net_pnl <= 0) / losses
+        else:
+            avg_loss = 0.0
+        
+        # Calculate profit factor
+        gross_profit = sum(t.net_pnl for t in self.trades if t.net_pnl > 0)
+        gross_loss = abs(sum(t.net_pnl for t in self.trades if t.net_pnl <= 0))
+        profit_factor = gross_profit / max(1.0, gross_loss)
+        
+        # Calculate max drawdown (simplified)
+        running_equity = 0.0
+        peak_equity = 0.0
+        max_drawdown = 0.0
+        
+        for trade in sorted(self.trades, key=lambda t: t.entry_timestamp):
+            running_equity += trade.net_pnl
+            if running_equity > peak_equity:
+                peak_equity = running_equity
+            drawdown = peak_equity - running_equity
+            if drawdown > max_drawdown:
+                max_drawdown = drawdown
+        
+        max_drawdown_pct = (max_drawdown / max(1.0, peak_equity)) * 100 if peak_equity > 0 else 0.0
+        
+        # Account size for percentage calculations (use default if not specified)
+        account_size = self.config.get("account_size", 10000)  # Default $10k
+        net_profit_pct = (performance.get("net_pnl", 0) / account_size) * 100
+        
+        visualization_metrics = {
+            "total_trades": performance.get("total_trades", 0),
+            "winning_trades": wins,
+            "losing_trades": losses,
+            "win_rate": performance.get("win_rate", 0.0),
+            "net_profit": performance.get("net_pnl", 0.0),
+            "net_profit_pct": net_profit_pct,
+            "profit_factor": profit_factor,
+            "max_drawdown": max_drawdown_pct,
+            "avg_win": avg_win,
+            "avg_loss": avg_loss
+        }
+        
+        with open(metrics_file, "w") as f:
+            json.dump(visualization_metrics, f, indent=2)

@@ -28,10 +28,28 @@ def create_html_report(backtest_results_dir, output_file=None):
     with open(metrics_path, 'r') as f:
         metrics = json.load(f) if os.path.exists(metrics_path) else {}
     
-    # Convert timestamps to datetime
+    # Convert timestamps to datetime and map column names
     if not trades_df.empty:
+        # Map our column names to expected names
+        if 'entry_timestamp' in trades_df.columns:
+            trades_df['entry_time'] = trades_df['entry_timestamp']
+        if 'exit_timestamp' in trades_df.columns:
+            trades_df['exit_time'] = trades_df['exit_timestamp']
+        if 'net_pnl' in trades_df.columns:
+            trades_df['profit_loss'] = trades_df['net_pnl']
+        
         trades_df['entry_time'] = pd.to_datetime(trades_df['entry_time'])
         trades_df['exit_time'] = pd.to_datetime(trades_df['exit_time'])
+        
+        # Calculate profit_loss_pct if not present
+        if 'profit_loss_pct' not in trades_df.columns:
+            trades_df['profit_loss_pct'] = (trades_df['profit_loss'] / (trades_df['entry_price'] * trades_df['contracts'] * 5.0)) * 100
+        
+        # Add missing columns for visualization compatibility
+        if 'stop_loss' not in trades_df.columns:
+            trades_df['stop_loss'] = 0.0  # Placeholder
+        if 'take_profit' not in trades_df.columns:
+            trades_df['take_profit'] = 0.0  # Placeholder
     
     if not equity_df.empty:
         equity_df['timestamp'] = pd.to_datetime(equity_df['timestamp'])

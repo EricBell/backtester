@@ -46,6 +46,8 @@ def main(
     count: Optional[int] = typer.Option(None, help="Number of contracts per trade (overrides config)"),
     outdir: str = typer.Option("./outputs", help="Output directory"),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Verbose logging"),
+    visualize: bool = typer.Option(False, "--visualize", help="Generate HTML visualization report"),
+    html_output: Optional[str] = typer.Option(None, "--html-output", help="Custom HTML output file path"),
 ):
     # Load and merge config
     cfg_path = Path(config)
@@ -168,6 +170,30 @@ def main(
 
     # Save results as before
     bt.save_results()
+    
+    # Generate visualization if requested
+    if visualize and total_trades > 0:
+        try:
+            from visualization import create_html_report
+            typer.echo("Generating visualization...")
+            
+            # Set output HTML path
+            if html_output:
+                html_file = Path(html_output)
+            else:
+                html_file = outdir_path / "backtest_report.html"
+            
+            # Generate HTML report
+            create_html_report(str(outdir_path), str(html_file))
+            typer.echo(f"Open in browser: file://{html_file.absolute()}")
+            
+        except ImportError:
+            typer.secho("Visualization requires: pip install plotly", fg=typer.colors.YELLOW)
+        except Exception as e:
+            typer.secho(f"Visualization failed: {e}", fg=typer.colors.RED)
+    elif visualize and total_trades == 0:
+        typer.echo("No trades to visualize.")
+    
     typer.echo("Backtest completed. See outputs for files.")
 
 

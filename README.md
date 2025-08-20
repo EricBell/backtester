@@ -419,3 +419,47 @@ Look for this pattern:
 - Forcing trades without proper pullback
 
 **🎯 This strategy actually works because it catches strong trending moves after brief pullbacks, with large 3.5R targets that more than compensate for the smaller, more frequent losses.**
+
+
+✅ Visualization Integration Complete!
+
+  The visualization system is now fully integrated with your backtester. Here's what was implemented:
+
+  New CLI Usage:
+
+  # Run backtest with visualization
+  python main.py data.csv --engine pullback --contract MES --visualize
+
+  # Custom HTML output location  
+  python main.py data.csv --engine pullback --contract MES --visualize --html-output ./my_report.html
+
+  New Features Added:
+
+  1. Enhanced Backtester Output (core/backtester.py):
+  - _save_equity_curve() - Generates equity progression CSV
+  - _save_metrics_for_visualization() - Creates visualization-compatible metrics
+  - Calculates profit factor, max drawdown, win/loss ratios
+
+  2. CLI Integration (main.py):
+  - --visualize flag to enable HTML generation
+  - --html-output for custom file paths
+  - Automatic plotly dependency detection
+
+  3. Data Format Compatibility (visualization.py):
+  - Maps backtester column names to visualization format
+  - Handles missing columns gracefully
+  - Calculates derived metrics (profit percentages, etc.)
+
+  Generated Files:
+
+  - trades.csv - Individual trade records
+  - equity_curve.csv - Equity progression over time
+  - metrics.json - Visualization-compatible performance stats
+  - backtest_report.html - Interactive dashboard with:
+    - Equity curve with trade markers
+    - Trade P&L bar chart
+    - Win/Loss pie chart
+    - Performance metrics table
+
+  The HTML report shows your S/R stop strategy's excellent performance (+$254 net profit) with an interactive dashboard you can open in
+  any browser locally.

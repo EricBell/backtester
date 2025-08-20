@@ -69,7 +69,7 @@ pullback:
   sr_lookback_bars: 20            # How far back to scan for S/R levels
   sr_min_touches: 2               # Minimum touches to confirm S/R level
   # sr_buffer_points: 1             # Points beyond S/R for stop placement
-  sr_buffer_points: 7            # Points beyond S/R for stop placement
+  sr_buffer_points: 0.5            # Points beyond S/R for stop placement
   round_number_intervals: [25, 50, 100]  # Round number levels
   
   # Stop Selection Method
