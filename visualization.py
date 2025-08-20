@@ -324,28 +324,97 @@ def add_price_indicators(fig, bars_df, config, row):
     if config is None:
         return
         
-    # Get strategy-specific parameters
-    strategy_params = {}
-    if 'orb' in config:
-        strategy_params = config['orb']
-    elif 'ema8_21' in config:
-        strategy_params = config['ema8_21']
-    elif 'pullback' in config:
+    # Detect active strategy and add appropriate indicators
+    if 'pullback' in config:
+        # Pullback strategy: EMA 13 (green), EMA 30 (red)
         strategy_params = config['pullback']
-    elif 'scalping' in config:
-        strategy_params = config['scalping']
-    
-    # Add EMAs if configured
-    if 'fast_ema_period' in strategy_params and 'slow_ema_period' in strategy_params:
-        fast_ema_data = ema(bars_df['Close'], strategy_params['fast_ema_period'])
-        slow_ema_data = ema(bars_df['Close'], strategy_params['slow_ema_period'])
+        fast_ema = strategy_params.get('ema_fast', 13)
+        slow_ema = strategy_params.get('ema_slow', 30)
+        
+        fast_ema_data = ema(bars_df['Close'], fast_ema)
+        slow_ema_data = ema(bars_df['Close'], slow_ema)
         
         fig.add_trace(
             go.Scatter(
                 x=bars_df.index,
                 y=fast_ema_data,
                 mode='lines',
-                name=f"EMA {strategy_params['fast_ema_period']}",
+                name=f"EMA {fast_ema}",
+                line=dict(color='green', width=2)  # Green as per README
+            ),
+            row=row, col=1
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=bars_df.index,
+                y=slow_ema_data,
+                mode='lines',
+                name=f"EMA {slow_ema}",
+                line=dict(color='red', width=2)  # Red as per README
+            ),
+            row=row, col=1
+        )
+        
+    elif 'ema8_21' in config:
+        # EMA8/21 strategy: EMA 8 (blue), EMA 21 (red)
+        strategy_params = config['ema8_21']
+        fast_ema = strategy_params.get('fast_ema_period', 8)
+        slow_ema = strategy_params.get('slow_ema_period', 21)
+        
+        fast_ema_data = ema(bars_df['Close'], fast_ema)
+        slow_ema_data = ema(bars_df['Close'], slow_ema)
+        
+        fig.add_trace(
+            go.Scatter(
+                x=bars_df.index,
+                y=fast_ema_data,
+                mode='lines',
+                name=f"EMA {fast_ema}",
+                line=dict(color='blue', width=2)  # Blue as per README
+            ),
+            row=row, col=1
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=bars_df.index,
+                y=slow_ema_data,
+                mode='lines',
+                name=f"EMA {slow_ema}",
+                line=dict(color='red', width=2)  # Red as per README
+            ),
+            row=row, col=1
+        )
+        
+    elif 'scalping' in config:
+        # Scalping strategy: Multiple EMAs
+        strategy_params = config['scalping']
+        fast_ema = strategy_params.get('fast_ema', 8)
+        medium_ema = strategy_params.get('medium_ema', 25)
+        slow_ema = strategy_params.get('slow_ema', 50)
+        
+        fast_ema_data = ema(bars_df['Close'], fast_ema)
+        medium_ema_data = ema(bars_df['Close'], medium_ema)
+        slow_ema_data = ema(bars_df['Close'], slow_ema)
+        
+        fig.add_trace(
+            go.Scatter(
+                x=bars_df.index,
+                y=fast_ema_data,
+                mode='lines',
+                name=f"EMA {fast_ema}",
+                line=dict(color='blue', width=1)
+            ),
+            row=row, col=1
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=bars_df.index,
+                y=medium_ema_data,
+                mode='lines',
+                name=f"EMA {medium_ema}",
                 line=dict(color='orange', width=1)
             ),
             row=row, col=1
@@ -356,28 +425,31 @@ def add_price_indicators(fig, bars_df, config, row):
                 x=bars_df.index,
                 y=slow_ema_data,
                 mode='lines',
-                name=f"EMA {strategy_params['slow_ema_period']}",
+                name=f"EMA {slow_ema}",
                 line=dict(color='purple', width=1)
             ),
             row=row, col=1
         )
+        
+    elif 'vwap' in config:
+        # VWAP strategy: Show VWAP line only
+        if 'Volume' in bars_df.columns and not bars_df['Volume'].isna().all():
+            try:
+                vwap_data = vwap(bars_df['High'], bars_df['Low'], bars_df['Close'], bars_df['Volume'])
+                fig.add_trace(
+                    go.Scatter(
+                        x=bars_df.index,
+                        y=vwap_data,
+                        mode='lines',
+                        name='VWAP',
+                        line=dict(color='yellow', width=2, dash='dash')
+                    ),
+                    row=row, col=1
+                )
+            except Exception:
+                pass  # Skip VWAP if calculation fails
     
-    # Add VWAP if we have volume data
-    if 'Volume' in bars_df.columns and not bars_df['Volume'].isna().all():
-        try:
-            vwap_data = vwap(bars_df['High'], bars_df['Low'], bars_df['Close'], bars_df['Volume'])
-            fig.add_trace(
-                go.Scatter(
-                    x=bars_df.index,
-                    y=vwap_data,
-                    mode='lines',
-                    name='VWAP',
-                    line=dict(color='yellow', width=1, dash='dash')
-                ),
-                row=row, col=1
-            )
-        except Exception:
-            pass  # Skip VWAP if calculation fails
+    # ORB strategy doesn't use EMAs or VWAP - it uses breakout levels
 
 def add_trade_markers(fig, trades_df, row):
     """Add trade entry and exit markers to the price chart"""
@@ -514,48 +586,119 @@ def add_volume_chart(fig, bars_df, trades_df, row=2):
             )
 
 def add_indicators_chart(fig, bars_df, config, row=3):
-    """Add technical indicators like RSI, ATR"""
+    """Add technical indicators based on strategy"""
     if config is None:
         return
     
-    # Add RSI if configured
-    strategy_params = {}
-    if 'rsi_period' in config.get('scalping', {}):
-        strategy_params = config['scalping']
-    elif 'rsi_period' in config.get('ema8_21', {}):
-        strategy_params = config['ema8_21']
-    
-    if 'rsi_period' in strategy_params:
+    # Strategy-specific indicators
+    if 'pullback' in config:
+        # Pullback strategy: Show ATR for volatility context
+        strategy_params = config['pullback']
+        atr_period = strategy_params.get('atr_period', 21)
+        
         try:
-            rsi_data = rsi(bars_df['Close'], strategy_params['rsi_period'])
+            # Calculate ATR
+            high_low = bars_df['High'] - bars_df['Low']
+            high_close = abs(bars_df['High'] - bars_df['Close'].shift())
+            low_close = abs(bars_df['Low'] - bars_df['Close'].shift())
+            ranges = pd.concat([high_low, high_close, low_close], axis=1)
+            true_range = ranges.max(axis=1)
+            atr_data = true_range.rolling(atr_period).mean()
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=bars_df.index,
+                    y=atr_data,
+                    mode='lines',
+                    name=f'ATR({atr_period})',
+                    line=dict(color='orange', width=2)
+                ),
+                row=row, col=1
+            )
+        except Exception:
+            pass
+            
+    elif 'ema8_21' in config:
+        # EMA8/21 strategy: Show RSI
+        strategy_params = config['ema8_21']
+        rsi_period = strategy_params.get('rsi_period', 14)
+        
+        try:
+            rsi_data = rsi(bars_df['Close'], rsi_period)
             fig.add_trace(
                 go.Scatter(
                     x=bars_df.index,
                     y=rsi_data,
                     mode='lines',
-                    name='RSI',
-                    line=dict(color='cyan', width=1)
+                    name=f'RSI({rsi_period})',
+                    line=dict(color='cyan', width=2)
                 ),
                 row=row, col=1
             )
             
             # Add RSI overbought/oversold lines
-            if 'rsi_overbought' in strategy_params:
-                fig.add_hline(
-                    y=strategy_params['rsi_overbought'],
-                    line_dash="dash",
-                    line_color="red",
-                    row=row, col=1
-                )
-            if 'rsi_oversold' in strategy_params:
-                fig.add_hline(
-                    y=strategy_params['rsi_oversold'],
-                    line_dash="dash",
-                    line_color="green",
-                    row=row, col=1
-                )
+            overbought = strategy_params.get('rsi_overbought', 70)
+            oversold = strategy_params.get('rsi_oversold', 30)
+            
+            fig.add_hline(
+                y=overbought,
+                line_dash="dash",
+                line_color="red",
+                row=row, col=1
+            )
+            fig.add_hline(
+                y=oversold,
+                line_dash="dash",
+                line_color="green",
+                row=row, col=1
+            )
+            fig.add_hline(
+                y=50,
+                line_dash="dot",
+                line_color="gray",
+                row=row, col=1
+            )
         except Exception:
             pass
+            
+    elif 'scalping' in config:
+        # Scalping strategy: Show RSI
+        strategy_params = config['scalping']
+        rsi_period = strategy_params.get('rsi_period', 14)
+        
+        try:
+            rsi_data = rsi(bars_df['Close'], rsi_period)
+            fig.add_trace(
+                go.Scatter(
+                    x=bars_df.index,
+                    y=rsi_data,
+                    mode='lines',
+                    name=f'RSI({rsi_period})',
+                    line=dict(color='cyan', width=2)
+                ),
+                row=row, col=1
+            )
+            
+            # Add RSI overbought/oversold lines
+            overbought = strategy_params.get('rsi_overbought', 75)
+            oversold = strategy_params.get('rsi_oversold', 25)
+            
+            fig.add_hline(
+                y=overbought,
+                line_dash="dash",
+                line_color="red",
+                row=row, col=1
+            )
+            fig.add_hline(
+                y=oversold,
+                line_dash="dash",
+                line_color="green",
+                row=row, col=1
+            )
+        except Exception:
+            pass
+    
+    # ORB and VWAP strategies don't use additional indicators in separate panel
 
 def add_equity_curve(fig, equity_df, row=4):
     """Add equity curve to the dashboard"""
