@@ -175,17 +175,17 @@ def main(
     if visualize and total_trades > 0:
         try:
             from visualization import create_html_report
-            typer.echo("Generating visualization...")
+            typer.echo("Generating enhanced visualization...")
             
             # Set output HTML path
             if html_output:
                 html_file = Path(html_output)
             else:
-                html_file = outdir_path / "backtest_report.html"
+                html_file = outdir_path / "enhanced_trading_report.html"
             
-            # Generate HTML report
-            create_html_report(str(outdir_path), str(html_file))
-            typer.echo(f"Open in browser: file://{html_file.absolute()}")
+            # Generate enhanced HTML report with bar data
+            create_html_report(str(outdir_path), str(html_file), data)
+            typer.echo(f"Enhanced visualization created: file://{html_file.absolute()}")
             
         except ImportError:
             typer.secho("Visualization requires: pip install plotly", fg=typer.colors.YELLOW)

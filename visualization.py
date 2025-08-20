@@ -4,14 +4,18 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
 import json
+from pathlib import Path
+from core.utils import load_csv_parse_datetime
+from core.indicators import ema, vwap, atr, rsi
 
-def create_html_report(backtest_results_dir, output_file=None):
+def create_html_report(backtest_results_dir, output_file=None, bar_data_path=None):
     """
     Create an HTML report with interactive charts
     
     Args:
         backtest_results_dir: Directory containing backtest results
         output_file: Output HTML file path
+        bar_data_path: Path to bar data CSV file for detailed trading chart
     """
     # Set default output file if not provided
     if output_file is None:
@@ -21,12 +25,31 @@ def create_html_report(backtest_results_dir, output_file=None):
     trades_path = os.path.join(backtest_results_dir, 'trades.csv')
     equity_path = os.path.join(backtest_results_dir, 'equity_curve.csv')
     metrics_path = os.path.join(backtest_results_dir, 'metrics.json')
+    config_path = os.path.join(backtest_results_dir, 'config_used.yaml')
     
     trades_df = pd.read_csv(trades_path) if os.path.exists(trades_path) else pd.DataFrame()
     equity_df = pd.read_csv(equity_path) if os.path.exists(equity_path) else pd.DataFrame()
     
     with open(metrics_path, 'r') as f:
         metrics = json.load(f) if os.path.exists(metrics_path) else {}
+    
+    # Load config for strategy parameters
+    config = {}
+    if os.path.exists(config_path):
+        import yaml
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f) or {}
+    
+    # Load bar data if path provided
+    bars_df = None
+    if bar_data_path and os.path.exists(bar_data_path):
+        try:
+            bars_df = load_csv_parse_datetime(
+                Path(bar_data_path),
+                tz_target=config.get('timezone', 'America/New_York')
+            )
+        except Exception as e:
+            print(f"Warning: Could not load bar data from {bar_data_path}: {e}")
     
     # Convert timestamps to datetime and map column names
     if not trades_df.empty:
@@ -54,15 +77,15 @@ def create_html_report(backtest_results_dir, output_file=None):
     if not equity_df.empty:
         equity_df['timestamp'] = pd.to_datetime(equity_df['timestamp'])
     
-    # Create figure with equity curve and trades
-    fig = create_dashboard(trades_df, equity_df, metrics)
+    # Create enhanced dashboard with trading chart
+    fig = create_enhanced_dashboard(trades_df, equity_df, metrics, bars_df, config)
     
     # Write to HTML file
     html_string = fig.to_html(include_plotlyjs=True, full_html=True)
     with open(output_file, 'w') as f:
         f.write(html_string)
     
-    print(f"HTML report created: {output_file}")
+    print(f"Enhanced HTML report created: {output_file}")
     return output_file
 
 def create_dashboard(trades_df, equity_df, metrics):
@@ -218,6 +241,390 @@ def create_dashboard(trades_df, equity_df, metrics):
     )
     
     return fig
+
+def create_enhanced_dashboard(trades_df, equity_df, metrics, bars_df=None, config=None):
+    """Create an enhanced dashboard with trading chart, equity curve, and metrics"""
+    if bars_df is not None and not bars_df.empty:
+        # Enhanced layout with trading chart
+        fig = make_subplots(
+            rows=5, cols=2,
+            specs=[
+                [{"colspan": 2}, None],           # Trading chart (main)
+                [{"colspan": 2}, None],           # Volume chart
+                [{"colspan": 2}, None],           # Indicator chart
+                [{"colspan": 2}, None],           # Equity curve
+                [{"type": "pie"}, {"type": "table"}]  # Pie + metrics table
+            ],
+            row_heights=[0.35, 0.15, 0.15, 0.25, 0.1],
+            subplot_titles=("Price Chart with Trades", "Volume", "Indicators", "Equity Curve", "Win/Loss", "Metrics"),
+            vertical_spacing=0.05
+        )
+        
+        # Add detailed trading chart
+        add_trading_chart(fig, bars_df, trades_df, config, row=1)
+        
+        # Add volume chart
+        add_volume_chart(fig, bars_df, trades_df, row=2)
+        
+        # Add indicators chart
+        add_indicators_chart(fig, bars_df, config, row=3)
+        
+        # Add equity curve
+        add_equity_curve(fig, equity_df, row=4)
+        
+        # Add pie and table
+        add_pie_and_metrics_table(fig, trades_df, metrics, row=5)
+        
+        # Enhanced layout for trading dashboard
+        fig.update_layout(
+            title="Enhanced Trading Strategy Analysis",
+            template="plotly_dark",
+            height=1400,
+            width=1400,
+            showlegend=True,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            )
+        )
+    else:
+        # Fallback to original dashboard if no bars data
+        fig = create_dashboard(trades_df, equity_df, metrics)
+    
+    return fig
+
+def add_trading_chart(fig, bars_df, trades_df, config, row=1):
+    """Add detailed OHLC chart with trade markers and indicators"""
+    # Add candlestick chart
+    fig.add_trace(
+        go.Candlestick(
+            x=bars_df.index,
+            open=bars_df['Open'],
+            high=bars_df['High'],
+            low=bars_df['Low'],
+            close=bars_df['Close'],
+            name='Price',
+            increasing_line_color='green',
+            decreasing_line_color='red'
+        ),
+        row=row, col=1
+    )
+    
+    # Add basic indicators (EMA if available)
+    add_price_indicators(fig, bars_df, config, row)
+    
+    # Add trade entry/exit markers
+    add_trade_markers(fig, trades_df, row)
+
+def add_price_indicators(fig, bars_df, config, row):
+    """Add price-based indicators like EMAs, VWAP to the price chart"""
+    if config is None:
+        return
+        
+    # Get strategy-specific parameters
+    strategy_params = {}
+    if 'orb' in config:
+        strategy_params = config['orb']
+    elif 'ema8_21' in config:
+        strategy_params = config['ema8_21']
+    elif 'pullback' in config:
+        strategy_params = config['pullback']
+    elif 'scalping' in config:
+        strategy_params = config['scalping']
+    
+    # Add EMAs if configured
+    if 'fast_ema_period' in strategy_params and 'slow_ema_period' in strategy_params:
+        fast_ema_data = ema(bars_df['Close'], strategy_params['fast_ema_period'])
+        slow_ema_data = ema(bars_df['Close'], strategy_params['slow_ema_period'])
+        
+        fig.add_trace(
+            go.Scatter(
+                x=bars_df.index,
+                y=fast_ema_data,
+                mode='lines',
+                name=f"EMA {strategy_params['fast_ema_period']}",
+                line=dict(color='orange', width=1)
+            ),
+            row=row, col=1
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=bars_df.index,
+                y=slow_ema_data,
+                mode='lines',
+                name=f"EMA {strategy_params['slow_ema_period']}",
+                line=dict(color='purple', width=1)
+            ),
+            row=row, col=1
+        )
+    
+    # Add VWAP if we have volume data
+    if 'Volume' in bars_df.columns and not bars_df['Volume'].isna().all():
+        try:
+            vwap_data = vwap(bars_df['High'], bars_df['Low'], bars_df['Close'], bars_df['Volume'])
+            fig.add_trace(
+                go.Scatter(
+                    x=bars_df.index,
+                    y=vwap_data,
+                    mode='lines',
+                    name='VWAP',
+                    line=dict(color='yellow', width=1, dash='dash')
+                ),
+                row=row, col=1
+            )
+        except Exception:
+            pass  # Skip VWAP if calculation fails
+
+def add_trade_markers(fig, trades_df, row):
+    """Add trade entry and exit markers to the price chart"""
+    if trades_df.empty:
+        return
+    
+    # Entry markers
+    long_entries = trades_df[trades_df['side'] == 'LONG']
+    short_entries = trades_df[trades_df['side'] == 'SHORT']
+    
+    if not long_entries.empty:
+        fig.add_trace(
+            go.Scatter(
+                x=long_entries['entry_time'],
+                y=long_entries['entry_price'],
+                mode='markers',
+                name='Long Entry',
+                marker=dict(
+                    color='lime',
+                    size=12,
+                    symbol='triangle-up',
+                    line=dict(width=2, color='darkgreen')
+                ),
+                text=[f"L {row['trade_id']}: ${row['entry_price']:.2f}" for _, row in long_entries.iterrows()],
+                textposition="top center"
+            ),
+            row=row, col=1
+        )
+    
+    if not short_entries.empty:
+        fig.add_trace(
+            go.Scatter(
+                x=short_entries['entry_time'],
+                y=short_entries['entry_price'],
+                mode='markers',
+                name='Short Entry',
+                marker=dict(
+                    color='red',
+                    size=12,
+                    symbol='triangle-down',
+                    line=dict(width=2, color='darkred')
+                ),
+                text=[f"S {row['trade_id']}: ${row['entry_price']:.2f}" for _, row in short_entries.iterrows()],
+                textposition="bottom center"
+            ),
+            row=row, col=1
+        )
+    
+    # Exit markers with P&L color coding
+    winning_trades = trades_df[trades_df['profit_loss'] > 0]
+    losing_trades = trades_df[trades_df['profit_loss'] <= 0]
+    
+    if not winning_trades.empty:
+        fig.add_trace(
+            go.Scatter(
+                x=winning_trades['exit_time'],
+                y=winning_trades['exit_price'],
+                mode='markers',
+                name='Winning Exit',
+                marker=dict(
+                    color='green',
+                    size=10,
+                    symbol='square',
+                    line=dict(width=2, color='darkgreen')
+                ),
+                text=[f"Exit {row['trade_id']}: +${row['profit_loss']:.2f}" for _, row in winning_trades.iterrows()],
+                textposition="top center"
+            ),
+            row=row, col=1
+        )
+    
+    if not losing_trades.empty:
+        fig.add_trace(
+            go.Scatter(
+                x=losing_trades['exit_time'],
+                y=losing_trades['exit_price'],
+                mode='markers',
+                name='Losing Exit',
+                marker=dict(
+                    color='red',
+                    size=10,
+                    symbol='square',
+                    line=dict(width=2, color='darkred')
+                ),
+                text=[f"Exit {row['trade_id']}: ${row['profit_loss']:.2f}" for _, row in losing_trades.iterrows()],
+                textposition="bottom center"
+            ),
+            row=row, col=1
+        )
+
+def add_volume_chart(fig, bars_df, trades_df, row=2):
+    """Add volume chart with trade highlighting"""
+    if 'Volume' not in bars_df.columns:
+        return
+    
+    # Volume bars
+    colors = ['green' if close > open else 'red' 
+              for close, open in zip(bars_df['Close'], bars_df['Open'])]
+    
+    fig.add_trace(
+        go.Bar(
+            x=bars_df.index,
+            y=bars_df['Volume'],
+            name='Volume',
+            marker_color=colors,
+            opacity=0.7
+        ),
+        row=row, col=1
+    )
+    
+    # Highlight volume at trade entry times
+    if not trades_df.empty:
+        # Find volume at entry times by merging with bars data
+        entry_volumes = []
+        for _, trade in trades_df.iterrows():
+            entry_time = trade['entry_time']
+            # Find closest bar
+            closest_bar = bars_df.index[bars_df.index <= entry_time]
+            if len(closest_bar) > 0:
+                volume = bars_df.loc[closest_bar[-1], 'Volume']
+                entry_volumes.append((entry_time, volume))
+        
+        if entry_volumes:
+            entry_times, volumes = zip(*entry_volumes)
+            fig.add_trace(
+                go.Scatter(
+                    x=list(entry_times),
+                    y=list(volumes),
+                    mode='markers',
+                    name='Trade Volume',
+                    marker=dict(color='yellow', size=8, symbol='diamond')
+                ),
+                row=row, col=1
+            )
+
+def add_indicators_chart(fig, bars_df, config, row=3):
+    """Add technical indicators like RSI, ATR"""
+    if config is None:
+        return
+    
+    # Add RSI if configured
+    strategy_params = {}
+    if 'rsi_period' in config.get('scalping', {}):
+        strategy_params = config['scalping']
+    elif 'rsi_period' in config.get('ema8_21', {}):
+        strategy_params = config['ema8_21']
+    
+    if 'rsi_period' in strategy_params:
+        try:
+            rsi_data = rsi(bars_df['Close'], strategy_params['rsi_period'])
+            fig.add_trace(
+                go.Scatter(
+                    x=bars_df.index,
+                    y=rsi_data,
+                    mode='lines',
+                    name='RSI',
+                    line=dict(color='cyan', width=1)
+                ),
+                row=row, col=1
+            )
+            
+            # Add RSI overbought/oversold lines
+            if 'rsi_overbought' in strategy_params:
+                fig.add_hline(
+                    y=strategy_params['rsi_overbought'],
+                    line_dash="dash",
+                    line_color="red",
+                    row=row, col=1
+                )
+            if 'rsi_oversold' in strategy_params:
+                fig.add_hline(
+                    y=strategy_params['rsi_oversold'],
+                    line_dash="dash",
+                    line_color="green",
+                    row=row, col=1
+                )
+        except Exception:
+            pass
+
+def add_equity_curve(fig, equity_df, row=4):
+    """Add equity curve to the dashboard"""
+    if equity_df.empty:
+        return
+    
+    fig.add_trace(
+        go.Scatter(
+            x=equity_df['timestamp'],
+            y=equity_df['equity'],
+            mode='lines',
+            name='Equity',
+            line=dict(color='rgba(0, 128, 255, 0.8)', width=2),
+            fill='tozeroy',
+            fillcolor='rgba(0, 128, 255, 0.2)'
+        ),
+        row=row, col=1
+    )
+
+def add_pie_and_metrics_table(fig, trades_df, metrics, row=5):
+    """Add pie chart and metrics table"""
+    # Win/loss pie chart
+    if not trades_df.empty:
+        wins = len(trades_df[trades_df['profit_loss'] > 0])
+        losses = len(trades_df[trades_df['profit_loss'] <= 0])
+        
+        fig.add_trace(
+            go.Pie(
+                labels=['Wins', 'Losses'],
+                values=[wins, losses],
+                marker_colors=['green', 'red'],
+                textinfo='label+percent',
+                hole=0.4,
+                name='Win/Loss'
+            ),
+            row=row, col=1
+        )
+    
+    # Metrics table
+    metrics_table = []
+    if metrics:
+        perf = metrics.get('performance', metrics)  # Handle both flat and nested structures
+        metrics_table = [
+            ["Total Trades", f"{perf.get('total_trades', 0)}"],
+            ["Win Rate", f"{perf.get('win_rate', 0):.2%}"],
+            ["Net P&L", f"${perf.get('net_pnl', 0):.2f}"],
+            ["Gross P&L", f"${perf.get('gross_pnl', 0):.2f}"],
+            ["Wins", f"{perf.get('wins', 0)}"],
+            ["Losses", f"{perf.get('losses', 0)}"]
+        ]
+    
+    if metrics_table:
+        fig.add_trace(
+            go.Table(
+                header=dict(
+                    values=["Metric", "Value"],
+                    fill_color='rgb(30, 30, 30)',
+                    align='left',
+                    font=dict(color='white', size=12)
+                ),
+                cells=dict(
+                    values=list(zip(*metrics_table)),
+                    fill_color='rgb(50, 50, 50)',
+                    align='left',
+                    font=dict(color='white', size=11)
+                )
+            ),
+            row=row, col=2
+        )
 
 def generate_trade_table_html(trades_df):
     """Generate HTML table of trades"""
