@@ -1,14 +1,15 @@
 {
   "major": 1,
   "minor": 0,
-  "patch": 2,
+  "patch": 3,
   "file_hashes": {
     "check_breakouts.py": "80f462f740bca2b4ebf81c6e08b7dca7205d76a02e11b30fe32d5ef97f21ba0a",
-    "main.py": "21573be2d0f96a2034814763c221c6a1e62c1c34a2a1daada2e2b339beeba909",
+    "deleteme.py": "3c38cafec800e0096bf862e1cb13832e8045aba519e323ab3369ec6f30f5170e",
+    "main.py": "5125063a72226517ecdf5b653d92ae2ff4cde044fc9b14784faa07f1a437083c",
     "requirements.txt": "01fbff2b1ba7b44338aca0774343ba9a953aacbc322f99030940be549eb12043",
     "run_signals_vol5.py": "0b7f204121cfba7844031f88f39590aa873b5a5ee537499b73f77621da34dc65",
-    "sanity_check.py": "a44d963d7e8838e7af159f89b148a4753aa6bb3996141ca976aa2890bec26912",
-    "version_manager.py": "ff0826fd158555fbee61c566b7f26d74cdb063724f70b2b869b91bdc30085a1a",
-    "visualization.py": "7912a60c63ce5cc89e8847643df83af08cf3ac71f806c753bdc174c8de7486bb"
+    "sanity_check.py": "4ca70f0b692ae831ab567b102d9cabcdcb458f951b965da1ce8f3e3af44cc013",
+    "version_manager.py": "904e2edb93a5aa50d1cd02a3563fd811945de594e88adb1140c72388df786a68",
+    "visualization.py": "895a8ed196936e2d9b0642bdf362471b38862f135114f360d98229150fa823e6"
   }
 }
