@@ -275,7 +275,7 @@ def create_enhanced_dashboard(trades_df, equity_df, metrics, bars_df=None, confi
         # Add pie and table
         add_pie_and_metrics_table(fig, trades_df, metrics, row=5)
         
-        # Enhanced layout for trading dashboard
+        # Enhanced layout for trading dashboard with better navigation
         fig.update_layout(
             title="Enhanced Trading Strategy Analysis",
             template="plotly_dark",
@@ -288,8 +288,79 @@ def create_enhanced_dashboard(trades_df, equity_df, metrics, bars_df=None, confi
                 y=1.02,
                 xanchor="right",
                 x=1
-            )
+            ),
+            # Enhanced chart interactions
+            dragmode='zoom',
+            selectdirection='d'
         )
+        
+        # Add enhanced navigation and scaling for main price chart
+        if bars_df is not None and not bars_df.empty:
+            # Calculate smart Y-axis range for better price visibility
+            price_range = bars_df['High'].max() - bars_df['Low'].min()
+            padding = price_range * 0.05  # 5% padding for better visibility
+            
+            # Update main price chart (row 1) with enhanced navigation
+            fig.update_xaxes(
+                # Add range selector buttons for time navigation
+                rangeselector=dict(
+                    buttons=[
+                        dict(count=1, label="1D", step="day", stepmode="backward"),
+                        dict(count=3, label="3D", step="day", stepmode="backward"),
+                        dict(count=7, label="7D", step="day", stepmode="backward"),
+                        dict(step="all", label="All")
+                    ],
+                    bgcolor="rgba(50,50,50,0.8)",
+                    font=dict(color="white")
+                ),
+                # Remove range slider for cleaner appearance
+                rangeslider=dict(visible=False),
+                # Enable zooming
+                fixedrange=False,
+                row=1, col=1
+            )
+            
+            # Update Y-axis for main price chart with smart scaling
+            fig.update_yaxes(
+                # Set range with padding for better price action visibility
+                range=[
+                    bars_df['Low'].min() - padding,
+                    bars_df['High'].max() + padding
+                ],
+                # Enable Y-axis zooming
+                fixedrange=False,
+                # Independent Y-axis scaling
+                scaleanchor=None,
+                # Add gridlines for better readability
+                showgrid=True,
+                gridcolor='rgba(128,128,128,0.3)',
+                row=1, col=1
+            )
+            
+            # Update other subplots for better scaling
+            # Volume chart (row 2)
+            fig.update_yaxes(
+                fixedrange=False,
+                showgrid=True,
+                gridcolor='rgba(128,128,128,0.3)',
+                row=2, col=1
+            )
+            
+            # Indicators chart (row 3)  
+            fig.update_yaxes(
+                fixedrange=False,
+                showgrid=True,
+                gridcolor='rgba(128,128,128,0.3)',
+                row=3, col=1
+            )
+            
+            # Equity curve (row 4)
+            fig.update_yaxes(
+                fixedrange=False,
+                showgrid=True,
+                gridcolor='rgba(128,128,128,0.3)',
+                row=4, col=1
+            )
     else:
         # Fallback to original dashboard if no bars data
         fig = create_dashboard(trades_df, equity_df, metrics)
@@ -298,7 +369,7 @@ def create_enhanced_dashboard(trades_df, equity_df, metrics, bars_df=None, confi
 
 def add_trading_chart(fig, bars_df, trades_df, config, row=1):
     """Add detailed OHLC chart with trade markers and indicators"""
-    # Add candlestick chart
+    # Add candlestick chart with enhanced styling
     fig.add_trace(
         go.Candlestick(
             x=bars_df.index,
@@ -307,8 +378,14 @@ def add_trading_chart(fig, bars_df, trades_df, config, row=1):
             low=bars_df['Low'],
             close=bars_df['Close'],
             name='Price',
-            increasing_line_color='green',
-            decreasing_line_color='red'
+            increasing_line_color='#00ff88',                    # Brighter green
+            decreasing_line_color='#ff4444',                    # Brighter red  
+            increasing_fillcolor='rgba(0, 255, 136, 0.3)',     # Semi-transparent green
+            decreasing_fillcolor='rgba(255, 68, 68, 0.3)',     # Semi-transparent red
+            line=dict(width=1),                                 # Thinner lines for better visibility
+            # Add hover info
+            text=[f"Open: ${row['Open']:.2f}<br>High: ${row['High']:.2f}<br>Low: ${row['Low']:.2f}<br>Close: ${row['Close']:.2f}" 
+                  for _, row in bars_df.iterrows()]
         ),
         row=row, col=1
     )
@@ -741,13 +818,20 @@ def add_pie_and_metrics_table(fig, trades_df, metrics, row=5):
     metrics_table = []
     if metrics:
         perf = metrics.get('performance', metrics)  # Handle both flat and nested structures
+        
+        # Handle different key names for net profit
+        net_pnl = perf.get('net_pnl', perf.get('net_profit', 0))
+        gross_pnl = perf.get('gross_pnl', perf.get('gross_profit', 0))
+        wins = perf.get('wins', perf.get('winning_trades', 0))
+        losses = perf.get('losses', perf.get('losing_trades', 0))
+        
         metrics_table = [
             ["Total Trades", f"{perf.get('total_trades', 0)}"],
             ["Win Rate", f"{perf.get('win_rate', 0):.2%}"],
-            ["Net P&L", f"${perf.get('net_pnl', 0):.2f}"],
-            ["Gross P&L", f"${perf.get('gross_pnl', 0):.2f}"],
-            ["Wins", f"{perf.get('wins', 0)}"],
-            ["Losses", f"{perf.get('losses', 0)}"]
+            ["Net P&L", f"${net_pnl:.2f}"],
+            ["Gross P&L", f"${gross_pnl:.2f}"],
+            ["Wins", f"{wins}"],
+            ["Losses", f"{losses}"]
         ]
     
     if metrics_table:
