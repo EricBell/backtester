@@ -2,8 +2,8 @@
 timezone: "America/New_York"
 commission_roundtrip: 1.74
 slippage_points: 0.0
-session_start: "08:00"
-session_end: "12:00"
+session_start: "09:30"
+session_end: "11:30"
 resample_minutes: 15
 max_daily_loss: 200.0
 max_trades_per_day: 4
@@ -57,13 +57,13 @@ pullback:
   require_bias_by_ema: true
   round_stops_to_tick: true
   tick_size: 0.25
-  session_start: "08:00"
-  session_end: "12:00"
+  session_start: "09:30"
+  session_end: "11:30"
   
   # Stop Method Toggles
-  use_atr_stops: false             # Enable/disable ATR-based stops
+  use_atr_stops: true              # Enable/disable ATR-based stops
   use_fixed_stops: false          # Enable/disable fixed point stops  
-  use_sr_stops: true              # Enable/disable support/resistance stops
+  use_sr_stops: false             # Enable/disable support/resistance stops
   
   # Support/Resistance Stop Settings
   sr_lookback_bars: 20            # How far back to scan for S/R levels
