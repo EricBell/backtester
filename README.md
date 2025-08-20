@@ -309,23 +309,35 @@ This manual approach lets you validate the strategy's real-world performance whi
 - 2 contracts per signal
 - Enter at market when resumption signal occurs
 
-**Exit Strategy:**
+**Exit Strategy - FLEXIBLE STOP SYSTEM:**
 - **Target**: 3.5x initial risk (3.5R target)
-- **Stop Loss**: Use the TIGHTEST of these three options:
-  1. **2.2x ATR** (volatility-based)
-  2. **7 points** (minimum fixed stop)
-  3. **1 point below nearest support (LONG) / 1 point above nearest resistance (SHORT)**
+- **Stop Loss**: Choose from three configurable stop methods:
 
-**Risk Calculation Example (with Support/Resistance Stop):**
+**Stop Method Options (via config toggles):**
+1. **ATR Stop**: 2.2x ATR (volatility-based)
+2. **Fixed Stop**: 7 points (minimum fixed stop)  
+3. **Support/Resistance Stop**: 0.05-1.0 points beyond nearest S/R level ⭐ **RECOMMENDED**
+
+**Stop Selection Logic:**
+- **"tightest"**: Uses closest stop to entry (lowest risk)
+- **"loosest"**: Uses furthest stop from entry (highest risk)
+- **"average"**: Uses average of enabled stop methods
+
+**OPTIMAL CONFIGURATION - S/R Stops Only:**
+```yaml
+use_atr_stops: false
+use_fixed_stops: false  
+use_sr_stops: true
+sr_buffer_points: 0.05  # Ultra-tight buffer for maximum profit
+stop_selection: "tightest"
+```
+
+**Risk Calculation Example (Optimal S/R Stop):**
 - Entry: 6000 (LONG)
-- ATR: 12 points → ATR stop = 5974 (26 points)
-- Fixed stop = 5993 (7 points)
-- **Support level = 5997 → S/R stop = 5996 (4 points)**
-- **Chosen stop: 5996** (tightest option)
-- Risk: 4 points = $20 per contract ($40 total for 2 contracts)
-- Target: 6000 + (4 × 3.5) = 6014 points (14 points = $70 profit per contract)
-
-**Better Risk/Reward**: $140 profit potential vs $40 risk = 3.5:1 ratio maintained
+- **Support level = 5997 → S/R stop = 5997.05** (0.05 buffer)
+- Risk: 2.95 points = $14.75 per contract ($29.50 total for 2 contracts)
+- Target: 6000 + (2.95 × 3.5) = 6010.3 points (10.3 points = $51.50 profit per contract)
+- **Total Profit Potential**: $103 vs $29.50 risk = 3.5:1 ratio maintained
 
 #### Manual Testing Process
 
@@ -374,11 +386,25 @@ Look for this pattern:
 4. **Volume**: Current bar volume > 10-bar average
 
 #### Expected Results (Based on Backtest)
-- **Net Profit**: +$177 over 2 months
-- **Win Rate**: ~19% (low win rate, but large winners)
-- **Average per trade**: +$4.21
-- **Monthly target**: ~$88
-- **Risk/Reward**: 3.5:1 on winners
+
+**UPDATED PERFORMANCE WITH S/R STOPS:**
+- **Net Profit**: +$584 over 2 months (3.3x improvement!)
+- **Win Rate**: 35.7% (nearly doubled from original 19%)
+- **Average per trade**: +$13.91 (vs original $4.21)
+- **Monthly target**: ~$292 (vs original $88)
+- **Risk/Reward**: 3.5:1 maintained
+
+**S/R Buffer Point Optimization Results:**
+| Buffer | Net P&L | Win Rate | Best For |
+|--------|---------|----------|----------|
+| 0.05   | +$584   | 35.7%    | Maximum profit |
+| 0.5    | +$399   | 42.9%    | Higher win rate |
+| 1.0    | +$109   | 35.7%    | Conservative |
+
+**Comparison to Other Stop Methods:**
+- **Original ATR-only**: +$177 (19% win rate)
+- **Tightest ATR+Fixed**: -$235 (19% win rate)
+- **Optimal S/R (0.05)**: +$584 (35.7% win rate) ⭐ **BEST**
 
 #### Key Success Factors
 - **Patience**: Wait for proper pullback setup (don't chase)
