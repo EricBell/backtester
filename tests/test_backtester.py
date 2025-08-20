@@ -352,13 +352,14 @@ class TestBacktester:
             ]
             
             metrics = bt.compute_metrics()
+            performance = metrics["performance"]
             
-            assert metrics["total_trades"] == 2
-            assert metrics["gross_pnl"] == 0.0  # 10 + (-10)
-            assert metrics["net_pnl"] == -6.0   # 7 + (-13)
-            assert metrics["wins"] == 1
-            assert metrics["losses"] == 1
-            assert metrics["win_rate"] == 0.5
+            assert performance["total_trades"] == 2
+            assert performance["gross_pnl"] == 0.0  # 10 + (-10)
+            assert performance["net_pnl"] == -6.0   # 7 + (-13)
+            assert performance["wins"] == 1
+            assert performance["losses"] == 1
+            assert performance["win_rate"] == 0.5
     
     def test_save_results_no_trades(self):
         """Test saving results with no trades."""

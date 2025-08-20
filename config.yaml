@@ -1,6 +1,6 @@
 # config.yaml - production-ready v1 defaults
 timezone: "America/New_York"
-# commission_roundtrip: 1.74  # Moved to contract-specific settings
+commission_roundtrip: 1.74
 slippage_points: 0.0
 session_start: "08:00"
 session_end: "12:00"
@@ -77,6 +77,7 @@ pullback:
 
 vwap:
   # VWAP Fade Strategy parameters
+  threshold_points: 2.0         # Points threshold for VWAP signals
   vwap_extension: 6.0           # Points from VWAP to consider extended
   extension_periods: 3          # How many periods price should be extended
   volume_threshold: 0.4         # Ratio to average volume to consider low volume
