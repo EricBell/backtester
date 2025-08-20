@@ -364,6 +364,45 @@ class Backtester:
             
         return trades, remaining_contracts, first_exit_done, exited
 
+    def _is_past_session_end(self, bar_time: pd.Timestamp) -> bool:
+        """Check if the current bar time is past the session end time."""
+        session_end = self.config.get("session_end", "12:00")
+        
+        # Parse session_end time (format: "HH:MM")
+        try:
+            end_hour, end_minute = [int(x) for x in session_end.split(":")]
+        except:
+            end_hour, end_minute = 12, 0  # Default to 12:00 PM
+        
+        # Get the time component of the bar
+        bar_time_only = bar_time.time()
+        session_end_time = pd.Timestamp(bar_time.date()).replace(
+            hour=end_hour, minute=end_minute
+        ).time()
+        
+        return bar_time_only >= session_end_time
+    
+    def _execute_session_close_exit(self, bar: pd.Series, side: str, entry_price: float,
+                                  remaining_contracts: int, entry_timestamp: datetime,
+                                  stop_price: float) -> TradeRecord:
+        """Execute session-end forced exit for remaining position."""
+        exit_price = float(bar.get("close", bar.get("Close")))
+        sign = 1 if side == "LONG" else -1
+        exit_price = self._apply_tick_rounding(exit_price - sign * self.slippage_points)
+        
+        if side == "LONG":
+            gross_pnl = (exit_price - entry_price) * remaining_contracts * self.dollars_per_point
+        else:
+            gross_pnl = (entry_price - exit_price) * remaining_contracts * self.dollars_per_point
+            
+        slippage_cost = self.slippage_points * self.dollars_per_point * remaining_contracts
+        
+        return self._create_trade_record(
+            self.trade_id_seq, entry_timestamp, bar.name.to_pydatetime(), side,
+            entry_price, exit_price, remaining_contracts, gross_pnl,
+            self.commission_rt, slippage_cost, stop_price, "SESSION_CLOSE"
+        )
+
     def _execute_market_close_exit(self, last_bar: pd.Series, side: str, entry_price: float,
                                  remaining_contracts: int, entry_timestamp: datetime,
                                  stop_price: float) -> TradeRecord:
@@ -382,7 +421,7 @@ class Backtester:
         return self._create_trade_record(
             self.trade_id_seq, entry_timestamp, last_bar.name.to_pydatetime(), side,
             entry_price, exit_price, remaining_contracts, gross_pnl,
-            self.commission_rt, slippage_cost, stop_price, "ORB"
+            self.commission_rt, slippage_cost, stop_price, "MARKET_CLOSE"
         )
 
     def _process_signal(self, idx: int, sig: pd.Series) -> None:
@@ -421,6 +460,16 @@ class Backtester:
             high = float(bar.get("high", bar.get("High")))
             low = float(bar.get("low", bar.get("Low")))
             exit_timestamp = bar_time.to_pydatetime()
+            
+            # Check for session end - force close position if past session_end time
+            if self._is_past_session_end(bar_time):
+                if remaining_contracts > 0:
+                    session_close_trade = self._execute_session_close_exit(
+                        bar, side, entry_price, remaining_contracts, entry_timestamp, stop_price
+                    )
+                    self.trades.append(session_close_trade)
+                    self.trade_id_seq += 1
+                break  # Exit - session ended
             
             # Execute exit logic based on side
             if side == "LONG":
