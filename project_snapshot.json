@@ -1,7 +1,7 @@
 {
   "project": "backtester",
-  "snapshot_version": "v0.6",
-  "snapshot_time_et": "2025-08-20T15:30:00-04:00",
+  "snapshot_version": "v0.7",
+  "snapshot_time_et": "2025-08-21T16:45:00-04:00",
   "user": {
     "name": "Eric Bell",
     "username": "EricTheRed",
@@ -115,7 +115,9 @@
         "core/indicators.py",
         "core/utils.py"
       ],
-      "visualization.py": "Interactive HTML dashboard with plotly ⭐ NEW",
+      "visualization.py": "Interactive HTML dashboard with plotly and chart synchronization ⭐ ENHANCED",
+      "version_manager.py": "Automated version tracking with file hashing ⭐ NEW",
+      "version.json": "Version state and file hash storage ⭐ NEW",
       "config.yaml": "Enhanced with flexible stop configuration",
       "examples/config.yaml": "default parameter sets",
       "outputs/": {
@@ -225,30 +227,84 @@
     }
   },
   "visualization_system": {
-    "description": "Interactive HTML dashboards for trade analysis",
+    "description": "Interactive HTML dashboards for trade analysis with synchronized chart navigation ⭐ ENHANCED",
     "features": {
       "equity_curve": "Real-time P&L progression with trade markers",
       "trade_pnl_chart": "Individual trade profit/loss bars",
       "win_loss_pie": "Win rate visualization",
-      "metrics_table": "Key performance statistics",
+      "metrics_table": "Key performance statistics with dynamic key mapping",
       "enhanced_mode": {
-        "price_chart": "OHLC candlesticks with strategy indicators",
-        "volume_chart": "Volume bars with trade highlighting",
-        "indicator_chart": "RSI, ATR, or strategy-specific indicators",
-        "trade_markers": "Entry/exit points with P&L annotations"
+        "price_chart": "OHLC candlesticks with strategy indicators and smart Y-axis scaling",
+        "volume_chart": "Volume bars with trade highlighting and synchronized X-axis",
+        "indicator_chart": "RSI, ATR, or strategy-specific indicators with synchronized X-axis", 
+        "trade_markers": "Entry/exit points with P&L annotations and hover details",
+        "chart_synchronization": "All time-based charts pan/zoom together ⭐ NEW",
+        "navigation_controls": "Range selector buttons (1D, 3D, 7D, All) and zoom tools ⭐ NEW",
+        "version_display": "Application version badge in bottom-right corner ⭐ NEW"
       }
     },
+    "chart_synchronization": {
+      "description": "Synchronized multi-panel trading chart with linked X-axes",
+      "implementation": "Manual axis linking with matches='x' for perfect sync",
+      "synchronized_charts": ["Price Chart", "Volume Chart", "Indicators Chart", "Equity Curve"],
+      "user_experience": [
+        "Pan/zoom on ANY chart moves ALL synchronized charts together",
+        "Range selector buttons control all time-based charts simultaneously",
+        "Double-click to reset zoom works on any chart",
+        "Mouse wheel zoom affects all synchronized charts"
+      ]
+    },
     "supported_indicators": {
-      "pullback": "EMA 13 (green), EMA 30 (red), ATR volatility",
+      "pullback": "EMA 13 (green), EMA 30 (red), ATR volatility - strategy-specific filtering ⭐ ENHANCED",
       "ema8_21": "EMA 8 (blue), EMA 21 (red), RSI with overbought/oversold levels",
       "scalping": "EMA 8/25/50, RSI momentum",
       "vwap": "VWAP line with extension zones",
       "orb": "Opening range breakout levels"
     },
+    "metrics_improvements": {
+      "dynamic_key_mapping": "Handles both net_profit and net_pnl key names automatically",
+      "nested_structure_support": "Works with both flat and nested performance metrics",
+      "accurate_display": "Fixed $0 display issue - now shows correct Net P&L values"
+    },
     "usage": {
       "cli": "python main.py data.csv --engine pullback --contract MES --visualize",
-      "output": "Enhanced HTML report in outputs/backtest_report.html",
+      "output": "Enhanced HTML report in outputs/enhanced_trading_report.html",
       "dependencies": "plotly (auto-detected and suggested if missing)"
+    }
+  },
+  "version_management_system": {
+    "description": "Automated application versioning with file change tracking ⭐ NEW",
+    "current_version": "v1.0.5",
+    "features": {
+      "automatic_versioning": "Increments patch version when tracked files change",
+      "file_hash_tracking": "SHA256 hashing of all tracked Python files",
+      "manual_version_control": "CLI commands for major/minor version bumps",
+      "version_display": "Version badge displayed in visualization bottom-right corner"
+    },
+    "tracked_files": [
+      "*.py files (all Python source code)",
+      "requirements.txt",
+      "*.spec files"
+    ],
+    "version_format": "semantic versioning (major.minor.patch)",
+    "cli_commands": {
+      "status": "python version_manager.py status - Show current version",
+      "check": "python version_manager.py check - Check for changes and update",
+      "major": "python version_manager.py major - Increment major version",
+      "minor": "python version_manager.py minor - Increment minor version", 
+      "patch": "python version_manager.py patch - Increment patch version",
+      "reset": "python version_manager.py reset [x.y.z] - Reset to specific version"
+    },
+    "integration": {
+      "visualization": "Version displayed as 'Backtester v1.0.5' in chart annotation",
+      "automatic_detection": "Changes detected on file modification and version auto-incremented",
+      "logging": "File changes logged with modification details"
+    },
+    "version_history": {
+      "v1.0.0": "Initial version (reset from previous state)",
+      "v1.0.1": "First visualization.py modifications",
+      "v1.0.2": "Version display integration completed",
+      "v1.0.5": "Current version with all enhancements"
     }
   },
   "contracts_config": {
@@ -340,7 +396,7 @@
   "process_notes": {
     "planning_only": "No code execution until user says 'proceed'. AI will not place orders or run backtests without explicit 'go'.",
     "how_to_restore": "Paste the JSON into the chat or upload the saved project_snapshot.json and say 'restore snapshot' to rehydrate context.",
-    "current_status": "Production-ready with optimal S/R stop configuration achieving +$584 performance"
+    "current_status": "Production-ready with optimal S/R stop configuration, advanced synchronized visualization system, and automated version management (v1.0.5)"
   },
   "last_actions": [
     "Implemented flexible stop-loss system with ATR, Fixed, and Support/Resistance options",
@@ -351,6 +407,12 @@
     "Updated CLI with --visualize and --html-output flags",
     "Updated README with latest performance benchmarks and S/R stop methodology",
     "Validated optimal configuration: S/R stops only with 0.05 buffer points and 'tightest' selection",
-    "Updated snapshot to v0.6 reflecting breakthrough S/R stop system and visualization capabilities"
+    "ENHANCED VISUALIZATION: Fixed metrics showing $0 Net P&L - now displays correct values ⭐ NEW",
+    "CHART SYNCHRONIZATION: Implemented synchronized panning/zooming across all time-based charts ⭐ NEW", 
+    "NAVIGATION IMPROVEMENTS: Added range selector buttons (1D, 3D, 7D, All) and enhanced zoom controls ⭐ NEW",
+    "CHART SCALING: Implemented smart Y-axis scaling with 5% padding for better price action visibility ⭐ NEW",
+    "VERSION MANAGEMENT: Integrated automated version tracking with file hashing and CLI controls ⭐ NEW",
+    "VERSION DISPLAY: Added application version badge in visualization bottom-right corner ⭐ NEW",
+    "Updated snapshot to v0.7 reflecting advanced visualization features and version management system"
   ]
 }
