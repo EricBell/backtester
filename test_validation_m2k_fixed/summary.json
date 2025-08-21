@@ -1,0 +1,47 @@
+{
+  "run_parameters": {
+    "strategy": "PullbackStrategy",
+    "contract": "M2K",
+    "contracts": 2,
+    "dollars_per_point": 5.0,
+    "commission_roundtrip": 1.74,
+    "slippage_points": 0.0,
+    "session_start": "09:30",
+    "session_end": "11:30",
+    "resample_minutes": 15
+  },
+  "strategy_parameters": {
+    "ema_fast": 13,
+    "ema_slow": 30,
+    "pullback_bars": 3,
+    "atr_period": 21,
+    "atr_multiplier_stop": 2.2,
+    "target_r": 2.0,
+    "stop_fixed_points": 4.0,
+    "require_bias_by_ema": true,
+    "round_stops_to_tick": true,
+    "tick_size": 0.25,
+    "session_start": "09:30",
+    "session_end": "11:30",
+    "use_atr_stops": true,
+    "use_fixed_stops": false,
+    "use_sr_stops": false,
+    "sr_lookback_bars": 20,
+    "sr_min_touches": 2,
+    "sr_buffer_points": 1.0,
+    "round_number_intervals": [
+      25,
+      50,
+      100
+    ],
+    "stop_selection": "average"
+  },
+  "performance": {
+    "total_trades": 10,
+    "gross_pnl": -43.99999999999636,
+    "net_pnl": -61.39999999999634,
+    "wins": 3,
+    "losses": 7,
+    "win_rate": 0.3
+  }
+}

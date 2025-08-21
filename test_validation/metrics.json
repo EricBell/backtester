@@ -1,0 +1,12 @@
+{
+  "total_trades": 26,
+  "winning_trades": 17,
+  "losing_trades": 9,
+  "win_rate": 0.6538,
+  "net_profit": 609.7599999999999,
+  "net_profit_pct": 6.097599999999999,
+  "profit_factor": 4.626070409134158,
+  "max_drawdown": 13.127220594651876,
+  "avg_win": 45.76,
+  "avg_loss": -18.684444444444445
+}

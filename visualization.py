@@ -45,9 +45,15 @@ def create_html_report(backtest_results_dir, output_file=None, bar_data_path=Non
     bars_df = None
     if bar_data_path and os.path.exists(bar_data_path):
         try:
+            # Get tick_size from contract metadata if available
+            contract_tick_size = None
+            if 'contract_meta' in config:
+                contract_tick_size = config['contract_meta'].get('tick_size')
+            
             bars_df = load_csv_parse_datetime(
                 Path(bar_data_path),
-                tz_target=config.get('timezone', 'America/New_York')
+                tz_target=config.get('timezone', 'America/New_York'),
+                tick_size=contract_tick_size
             )
         except Exception as e:
             print(f"Warning: Could not load bar data from {bar_data_path}: {e}")

@@ -33,6 +33,13 @@ contracts:
     commission_roundtrip: 1.74
     position_contracts: 1
     notes: "E-mini S&P"
+  M2K:
+    label: "Micro E-mini Russell 2000"
+    dollars_per_point: 5.0
+    tick_size: 0.1
+    commission_roundtrip: 1.74
+    position_contracts: 2
+    notes: "Micro Russell 2000"
 
 orb:
   # Session timing

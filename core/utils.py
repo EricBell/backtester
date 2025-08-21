@@ -191,7 +191,15 @@ def load_csv_parse_datetime(path: Path,
                 if misaligned_count:
                     misaligned[col] = misaligned_count
         if misaligned:
-            raise ValueError(f"Price tick alignment issue detected (not multiples of {tick_size}): {misaligned}")
+            raise ValueError(
+                f"Price tick alignment issue detected (not multiples of {tick_size}): {misaligned}\n"
+                f"This means your price data is not aligned to the expected tick size.\n"
+                f"Solutions:\n"
+                f"1. Verify the tick_size in your config.yaml for this contract matches your data\n"
+                f"2. Check if your data source uses a different tick size than configured\n"
+                f"3. Set tick_size=None in load_csv_parse_datetime() to disable this validation\n"
+                f"4. Ensure your price data is properly rounded to the contract's tick size"
+            )
 
 
 
@@ -379,4 +387,93 @@ def round_to_tick(price: float, tick: float, direction: str = "nearest") -> floa
         rounded = round(ticks) * tick
     # avoid -0.0 float formatting
     return float(rounded)
+
+
+def extract_contract_symbol_from_filename(filename: str) -> str:
+    """
+    Extract contract symbol from data filename.
+    
+    The naming convention expects the first 2-3 letters of the filename to be 
+    the futures contract symbol (e.g., 'MES' from 'MES-0612-0806.Last_15min.csv', 
+    'M2K' from 'M2K250701-0820.Last_15min.csv').
+    
+    Args:
+        filename: Data filename (with or without path)
+        
+    Returns:
+        Extracted contract symbol (uppercase)
+    """
+    import re
+    
+    # Get just the filename without path
+    base_filename = Path(filename).name
+    
+    # Enhanced pattern to handle various contract symbol formats:
+    # - 2-3 letters: MES, ES, NQ
+    # - Letter-Digit-Letter: M2K (Micro Russell 2000)
+    # - Multiple patterns at start of filename
+    patterns = [
+        r'^([A-Za-z]\d[A-Za-z])',      # Pattern like M2K (letter-digit-letter)
+        r'^([A-Za-z]{3})',             # 3 letters like MES, MNQ  
+        r'^([A-Za-z]{2})',             # 2 letters like ES, NQ
+    ]
+    
+    for pattern in patterns:
+        match = re.match(pattern, base_filename)
+        if match:
+            return match.group(1).upper()
+    
+    # Fallback: extract all letters from first word before separators
+    first_part = base_filename.split('-')[0].split('_')[0].split('.')[0]
+    # For mixed alphanumeric, preserve the pattern
+    if any(c.isdigit() for c in first_part) and any(c.isalpha() for c in first_part):
+        # Keep alphanumeric pattern for contract symbols like M2K
+        alphanumeric = ''.join(c for c in first_part if c.isalnum())
+        return alphanumeric.upper() if alphanumeric else ""
+    else:
+        # Extract only letters for pure letter symbols
+        letters_only = ''.join(c for c in first_part if c.isalpha())
+        return letters_only.upper() if letters_only else ""
+
+
+def validate_data_file_contract(data_file_path: str, config: Dict[str, Any]) -> Tuple[bool, str]:
+    """
+    Validate that the data file's contract symbol matches configured contracts.
+    
+    Args:
+        data_file_path: Path to the data file
+        config: Configuration dictionary containing contracts
+        
+    Returns:
+        Tuple of (is_valid, error_message)
+        - is_valid: True if validation passes, False otherwise
+        - error_message: Empty string if valid, error description if invalid
+    """
+    try:
+        # Extract contract symbol from filename
+        extracted_symbol = extract_contract_symbol_from_filename(data_file_path)
+        
+        if not extracted_symbol:
+            return False, f"Could not extract contract symbol from filename: {Path(data_file_path).name}"
+        
+        # Get configured contracts
+        contracts = config.get("contracts", {})
+        
+        if not contracts:
+            return False, "No contracts configured in config.yaml"
+        
+        # Check if extracted symbol exists in configured contracts
+        configured_symbols = list(contracts.keys())
+        
+        if extracted_symbol not in configured_symbols:
+            return False, (
+                f"Data file contract mismatch: '{extracted_symbol}' (from {Path(data_file_path).name}) "
+                f"not found in configured contracts: {configured_symbols}. "
+                f"Please ensure the data file matches one of the configured contract symbols."
+            )
+        
+        return True, ""
+        
+    except Exception as e:
+        return False, f"Error validating data file contract: {str(e)}"
 

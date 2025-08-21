@@ -95,7 +95,15 @@ def main(
         typer.echo(f"Data file not found: {data_path}")
         raise typer.Exit(code=2)
 
-    df = utils.load_csv_parse_datetime(data_path, tz_target=merged.get("timezone") or merged.get("tz"))
+    # Validate data file contract matches configuration
+    is_valid, error_msg = utils.validate_data_file_contract(str(data_path), merged)
+    if not is_valid:
+        typer.secho(f"ERROR: {error_msg}", fg=typer.colors.RED)
+        raise typer.Abort()
+
+    # Pass the correct tick_size from contract metadata for validation
+    contract_tick_size = merged["contract_meta"].get("tick_size")
+    df = utils.load_csv_parse_datetime(data_path, tz_target=merged.get("timezone") or merged.get("tz"), tick_size=contract_tick_size)
     data_start, data_end = utils.derive_data_range(df)
 
     # Determine effective start/end
