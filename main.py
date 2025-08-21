@@ -153,6 +153,14 @@ def main(
         typer.secho(f"Unknown engine: {engine}. Supported: orb, pullback, vwap, scalping, ema8-21", fg=typer.colors.RED)
         raise typer.Abort()
 
+    # Apply command line session overrides if provided
+    if session_start:
+        strategy.session_start = session_start
+        typer.echo(f"Session start overridden by command line: {session_start}")
+    if session_end:
+        strategy.session_end = session_end
+        typer.echo(f"Session end overridden by command line: {session_end}")
+
     # Validate strategy has required session parameters
     if not hasattr(strategy, 'session_start') or not strategy.session_start:
         typer.secho(f"Error: {engine} strategy missing required session_start parameter", fg=typer.colors.RED)
@@ -160,6 +168,9 @@ def main(
     if not hasattr(strategy, 'session_end') or not strategy.session_end:
         typer.secho(f"Error: {engine} strategy missing required session_end parameter", fg=typer.colors.RED)
         raise typer.Abort()
+
+    # Add session timing to the run summary
+    typer.echo(f"Session window: {strategy.session_start} -> {strategy.session_end}")
 
     # Initialize backtester (skeleton)
     bt = Backtester(strategy=strategy, bars_df=df_resampled, config=merged, outdir=outdir_path)
