@@ -231,7 +231,7 @@ class Backtester:
     def _execute_long_trade_exit(self, high: float, low: float, entry_price: float, 
                                stop_price: float, t1: float, t2: float, remaining_contracts: int,
                                first_exit_done: bool, entry_timestamp: datetime, 
-                               exit_timestamp: datetime) -> Tuple[List[TradeRecord], int, bool, bool]:
+                               exit_timestamp: datetime, setup: str) -> Tuple[List[TradeRecord], int, bool, bool]:
         """Execute long trade exit logic (stop loss or profit targets)."""
         trades = []
         exited = False
@@ -245,7 +245,7 @@ class Backtester:
             trade = self._create_trade_record(
                 self.trade_id_seq, entry_timestamp, exit_timestamp, "LONG",
                 entry_price, exit_price, remaining_contracts, gross_pnl,
-                self.commission_rt, slippage_cost, stop_price, "ORB"
+                self.commission_rt, slippage_cost, stop_price, setup
             )
             trades.append(trade)
             self.trade_id_seq += 1
@@ -268,7 +268,7 @@ class Backtester:
             trade = self._create_trade_record(
                 self.trade_id_seq, entry_timestamp, exit_timestamp, "LONG",
                 entry_price, exit_price, exit_contracts, gross_pnl,
-                self.commission_rt, slippage_cost, stop_price, "ORB"  # Commission on all exits
+                self.commission_rt, slippage_cost, stop_price, setup  # Commission on all exits
             )
             trades.append(trade)
             self.trade_id_seq += 1
@@ -288,7 +288,7 @@ class Backtester:
             trade = self._create_trade_record(
                 self.trade_id_seq, entry_timestamp, exit_timestamp, "LONG",
                 entry_price, exit_price, remaining_contracts, gross_pnl,
-                self.commission_rt, slippage_cost, stop_price, "ORB"
+                self.commission_rt, slippage_cost, stop_price, setup
             )
             trades.append(trade)
             self.trade_id_seq += 1
@@ -299,7 +299,7 @@ class Backtester:
     def _execute_short_trade_exit(self, high: float, low: float, entry_price: float,
                                 stop_price: float, t1: float, t2: float, remaining_contracts: int,
                                 first_exit_done: bool, entry_timestamp: datetime,
-                                exit_timestamp: datetime) -> Tuple[List[TradeRecord], int, bool, bool]:
+                                exit_timestamp: datetime, setup: str) -> Tuple[List[TradeRecord], int, bool, bool]:
         """Execute short trade exit logic (stop loss or profit targets)."""
         trades = []
         exited = False
@@ -313,7 +313,7 @@ class Backtester:
             trade = self._create_trade_record(
                 self.trade_id_seq, entry_timestamp, exit_timestamp, "SHORT",
                 entry_price, exit_price, remaining_contracts, gross_pnl,
-                self.commission_rt, slippage_cost, stop_price, "ORB"
+                self.commission_rt, slippage_cost, stop_price, setup
             )
             trades.append(trade)
             self.trade_id_seq += 1
@@ -336,7 +336,7 @@ class Backtester:
             trade = self._create_trade_record(
                 self.trade_id_seq, entry_timestamp, exit_timestamp, "SHORT",
                 entry_price, exit_price, exit_contracts, gross_pnl,
-                self.commission_rt, slippage_cost, stop_price, "ORB"  # Commission on all exits
+                self.commission_rt, slippage_cost, stop_price, setup  # Commission on all exits
             )
             trades.append(trade)
             self.trade_id_seq += 1
@@ -356,7 +356,7 @@ class Backtester:
             trade = self._create_trade_record(
                 self.trade_id_seq, entry_timestamp, exit_timestamp, "SHORT",
                 entry_price, exit_price, remaining_contracts, gross_pnl,
-                self.commission_rt, slippage_cost, stop_price, "ORB"
+                self.commission_rt, slippage_cost, stop_price, setup
             )
             trades.append(trade)
             self.trade_id_seq += 1
@@ -388,7 +388,7 @@ class Backtester:
     
     def _execute_session_close_exit(self, bar: pd.Series, side: str, entry_price: float,
                                   remaining_contracts: int, entry_timestamp: datetime,
-                                  stop_price: float) -> TradeRecord:
+                                  stop_price: float, setup: str) -> TradeRecord:
         """Execute session-end forced exit for remaining position."""
         exit_price = float(bar.get("close", bar.get("Close")))
         sign = 1 if side == "LONG" else -1
@@ -404,12 +404,12 @@ class Backtester:
         return self._create_trade_record(
             self.trade_id_seq, entry_timestamp, bar.name.to_pydatetime(), side,
             entry_price, exit_price, remaining_contracts, gross_pnl,
-            self.commission_rt, slippage_cost, stop_price, "SESSION_CLOSE"
+            self.commission_rt, slippage_cost, stop_price, setup
         )
 
     def _execute_market_close_exit(self, last_bar: pd.Series, side: str, entry_price: float,
                                  remaining_contracts: int, entry_timestamp: datetime,
-                                 stop_price: float) -> TradeRecord:
+                                 stop_price: float, setup: str) -> TradeRecord:
         """Execute market-on-close exit for remaining position."""
         exit_price = float(last_bar.get("close", last_bar.get("Close")))
         sign = 1 if side == "LONG" else -1
@@ -425,7 +425,7 @@ class Backtester:
         return self._create_trade_record(
             self.trade_id_seq, entry_timestamp, last_bar.name.to_pydatetime(), side,
             entry_price, exit_price, remaining_contracts, gross_pnl,
-            self.commission_rt, slippage_cost, stop_price, "MARKET_CLOSE"
+            self.commission_rt, slippage_cost, stop_price, setup
         )
 
     def _process_signal(self, idx: int, sig: pd.Series) -> None:
@@ -436,6 +436,12 @@ class Backtester:
         # Extract signal data
         signal_time = pd.to_datetime(sig_dict["timestamp"])
         side = sig_dict["side"]
+        # Extract setup from top level or meta object
+        setup = sig_dict.get("setup")
+        if setup is None and "meta" in sig_dict:
+            setup = sig_dict["meta"].get("setup")
+        if setup is None:
+            setup = "UNKNOWN"
         
         # Find entry bar
         entry_bar = self._find_entry_bar(signal_time)
@@ -469,7 +475,7 @@ class Backtester:
             if self._is_past_session_end(bar_time):
                 if remaining_contracts > 0:
                     session_close_trade = self._execute_session_close_exit(
-                        bar, side, entry_price, remaining_contracts, entry_timestamp, stop_price
+                        bar, side, entry_price, remaining_contracts, entry_timestamp, stop_price, setup
                     )
                     self.trades.append(session_close_trade)
                     self.trade_id_seq += 1
@@ -481,12 +487,12 @@ class Backtester:
             if side == "LONG":
                 new_trades, remaining_contracts, first_exit_done, exited = self._execute_long_trade_exit(
                     high, low, entry_price, stop_price, t1, t2, remaining_contracts,
-                    first_exit_done, entry_timestamp, exit_timestamp
+                    first_exit_done, entry_timestamp, exit_timestamp, setup
                 )
             else:  # SHORT
                 new_trades, remaining_contracts, first_exit_done, exited = self._execute_short_trade_exit(
                     high, low, entry_price, stop_price, t1, t2, remaining_contracts,
-                    first_exit_done, entry_timestamp, exit_timestamp
+                    first_exit_done, entry_timestamp, exit_timestamp, setup
                 )
             
             # Add any new trades
@@ -499,7 +505,7 @@ class Backtester:
         if not exited and remaining_contracts > 0:
             last_bar = next_bars.iloc[-1] if not next_bars.empty else entry_bar
             market_close_trade = self._execute_market_close_exit(
-                last_bar, side, entry_price, remaining_contracts, entry_timestamp, stop_price
+                last_bar, side, entry_price, remaining_contracts, entry_timestamp, stop_price, setup
             )
             self.trades.append(market_close_trade)
             self.trade_id_seq += 1

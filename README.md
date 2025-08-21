@@ -309,6 +309,34 @@ This section contains a proven pullback strategy that achieved exceptional resul
   any browser locally.
 
 ---
+Working with MARI, here's the entire prompt to start the analysis session:
+
+here's trading data
+   trade_id, entry_timestamp          , exit_timestamp           , side , entry_price, exit_price, contracts, gross_pnl, commission, slippage_cost, net_pnl, r_multiple           , setup         ,, contract
+   1, 2025-06-16T10:30:00-04:00, 2025-06-16T11:30:00-04:00, LONG ,     6060.25,    6067.75,         2, 75.0     ,       1.74,           0.0, 73.26  , 1.0853333333333335   , pullback_long ,, MES
+   ...
+
+here's the requirements for my backtesting app: 
+   {
+   "project": "backtester",
+   "snapshot_version": "v0.7",
+   "snapshot_time_et": "2025-08-21T16:45:00-04:00",
+   "user": {
+   ...
+
+here's the parameters used to configure this app for pullback strategy: pullback:
+   ema_fast: 13
+   ema_slow: 30
+   pullback_bars: 3
+   ...
+
+Focus on the pullback strategy only
+
+Followup prompt
+I want you to help me understand the results better and train me on the mechanics of taking the trades myself  using NT8. Don't churn out endless suggetions and direction for me. I have questions and don't need yours at this time.
+
+
+---
 
 # 🎯 TRADING IMPLEMENTATION GUIDE - NINJATRADER 8
 
