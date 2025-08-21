@@ -57,6 +57,12 @@ class ORBStrategy:
         
         # Signal management
         self.cancel_within_minutes = int(self.params.get("cancel_within_minutes", 60))
+        
+        # Session timing (required)
+        self.session_start = self.params.get("session_start")
+        self.session_end = self.params.get("session_end")
+        if not self.session_start or not self.session_end:
+            raise ValueError("ORB strategy requires session_start and session_end in config")
 
     def _ensure_datetime_index(self, df: pd.DataFrame, tz_target: str) -> pd.DataFrame:
         """Ensure DataFrame has a proper timezone-aware DatetimeIndex."""

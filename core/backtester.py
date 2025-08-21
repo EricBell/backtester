@@ -366,13 +366,17 @@ class Backtester:
 
     def _is_past_session_end(self, bar_time: pd.Timestamp) -> bool:
         """Check if the current bar time is past the session end time."""
-        session_end = self.config.get("session_end", "12:00")
+        # Strategy MUST have session_end - no global fallback
+        if not hasattr(self.strategy, 'session_end') or not self.strategy.session_end:
+            raise ValueError(f"Strategy {type(self.strategy).__name__} must define session_end attribute")
+        
+        session_end = self.strategy.session_end
         
         # Parse session_end time (format: "HH:MM")
         try:
             end_hour, end_minute = [int(x) for x in session_end.split(":")]
-        except:
-            end_hour, end_minute = 12, 0  # Default to 12:00 PM
+        except Exception as e:
+            raise ValueError(f"Invalid session_end format '{session_end}'. Expected HH:MM format") from e
         
         # Get the time component of the bar
         bar_time_only = bar_time.time()
@@ -469,6 +473,8 @@ class Backtester:
                     )
                     self.trades.append(session_close_trade)
                     self.trade_id_seq += 1
+                    remaining_contracts = 0  # Position fully closed
+                    exited = True  # Mark as exited to prevent market close
                 break  # Exit - session ended
             
             # Execute exit logic based on side
@@ -566,8 +572,8 @@ class Backtester:
             "dollars_per_point": self.dollars_per_point,
             "commission_roundtrip": self.commission_rt,
             "slippage_points": self.slippage_points,
-            "session_start": self.config.get("session_start"),
-            "session_end": self.config.get("session_end"),
+            "session_start": getattr(self.strategy, 'session_start', None),
+            "session_end": getattr(self.strategy, 'session_end', None),
             "resample_minutes": self.config.get("resample_minutes"),
         }
         

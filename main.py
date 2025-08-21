@@ -153,6 +153,14 @@ def main(
         typer.secho(f"Unknown engine: {engine}. Supported: orb, pullback, vwap, scalping, ema8-21", fg=typer.colors.RED)
         raise typer.Abort()
 
+    # Validate strategy has required session parameters
+    if not hasattr(strategy, 'session_start') or not strategy.session_start:
+        typer.secho(f"Error: {engine} strategy missing required session_start parameter", fg=typer.colors.RED)
+        raise typer.Abort()
+    if not hasattr(strategy, 'session_end') or not strategy.session_end:
+        typer.secho(f"Error: {engine} strategy missing required session_end parameter", fg=typer.colors.RED)
+        raise typer.Abort()
+
     # Initialize backtester (skeleton)
     bt = Backtester(strategy=strategy, bars_df=df_resampled, config=merged, outdir=outdir_path)
     bt.run()

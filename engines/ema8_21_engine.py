@@ -36,9 +36,11 @@ class EMA821Strategy:
         self.strategy_name = "ema8-21"
         self.timeframe = "30m"
         
-        # Trading session parameters
-        self.session_start = self.params.get("session_start", "09:45")  # Exclude first 15 minutes
-        self.session_end = self.params.get("session_end", "14:30")
+        # Trading session parameters (required)
+        self.session_start = self.params.get("session_start")
+        self.session_end = self.params.get("session_end")
+        if not self.session_start or not self.session_end:
+            raise ValueError("EMA8_21 strategy requires session_start and session_end in config")
         self.timezone = self.params.get("timezone", "America/New_York")
         
         # Indicator parameters

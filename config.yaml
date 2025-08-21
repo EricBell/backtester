@@ -2,8 +2,6 @@
 timezone: "America/New_York"
 commission_roundtrip: 1.74
 slippage_points: 0.0
-session_start: "09:30"
-session_end: "11:30"
 resample_minutes: 15
 max_daily_loss: 200.0
 max_trades_per_day: 4
@@ -37,6 +35,11 @@ contracts:
     notes: "E-mini S&P"
 
 orb:
+  # Session timing
+  session_start: "08:00"        # Session start time
+  session_end: "12:00"          # Session end time
+  
+  # ORB Strategy parameters
   open_range_minutes: 30       # Longer from 15 - more significant ranges
   require_volume_confirmation: true  # Keep enabled
   volume_lookback: 10           # Longer from 5 - more reliable volume filter

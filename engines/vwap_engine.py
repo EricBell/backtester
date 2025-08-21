@@ -65,9 +65,11 @@ class VWAPFadeStrategy:
         self.target_r = self.params.get("target_r", 1.0)  # Target risk/reward ratio
         self.stop_r = self.params.get("stop_r", 0.75)  # Stop loss as R multiple
         
-        # Session filter
-        self.session_start = self.params.get("session_start", "08:00")
-        self.session_end = self.params.get("session_end", "12:00")
+        # Session filter (required)
+        self.session_start = self.params.get("session_start")
+        self.session_end = self.params.get("session_end")
+        if not self.session_start or not self.session_end:
+            raise ValueError("VWAP strategy requires session_start and session_end in config")
 
     def calculate_vwap(self, df: pd.DataFrame) -> pd.Series:
         """Calculate VWAP (Volume Weighted Average Price)"""
